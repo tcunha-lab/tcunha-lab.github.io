@@ -1,5 +1,3 @@
----
----
 // Email anti-scrape: team cards and the footer store the user/domain halves
 // in data-u / data-d. We assemble the real address as late as possible —
 // once per element — and then trigger the navigation ourselves.

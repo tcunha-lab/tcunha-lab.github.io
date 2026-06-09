@@ -32,12 +32,25 @@ body.home .site-footer {
   margin-top: 0;
 }
 
-// Team: the default global $space-9 margin-top on the footer leaves a
-// huge white band below the Prospectives section. Shrink both the
-// page-body's bottom padding and the footer's top margin so the footer
-// sits closer without being glued to the box.
-body.team .page-body   { padding-bottom: $space-5; }
-body.team .site-footer { margin-top: $space-2; }
+// Team / Research / Publications / Teaching / Fieldwork / News all
+// suffered the same big white band below the last content row: the
+// default global $space-9 footer margin-top stacks on top of the
+// page-body's bottom padding. We shrink both on every page that
+// hides its page-header (and Team, which keeps its Prospectives box)
+// so the footer sits a comfortable distance from the last content,
+// not a full-screen-of-whitespace away.
+body.team .page-body,
+body.research .page-body,
+body.publications .page-body,
+body.teaching .page-body,
+body.fieldwork .page-body,
+body.news .page-body         { padding-bottom: $space-5; }
+body.team .site-footer,
+body.research .site-footer,
+body.publications .site-footer,
+body.teaching .site-footer,
+body.fieldwork .site-footer,
+body.news .site-footer       { margin-top: $space-2; }
 
 // Pages that hide the page-header (Team, Publications, Research, News,
 // Teaching): zero out the global `.site-main { padding-top: $nav-height }`
