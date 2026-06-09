@@ -1,0 +1,104 @@
+# ================================================================
+# Tauana Cunha Lab — site configuration
+# Edit the values below to update site-wide info. After editing,
+# the site will rebuild automatically on GitHub Pages when you push.
+# ================================================================
+
+# --- Identity ---
+title: "Tauana Cunha Lab"
+short_title: "Cunha Lab"
+tagline: "invertebrate genomics and evolution @\u00a0Loyola University Chicago"
+description: >-
+  invertebrate genomics and evolution @ Loyola University Chicago
+author: "Tauana Cunha"
+email: "tcunha@luc.edu"
+
+# Home-page banner: adjust which part of team-hero.jpg shows in the
+# cropped banner. Format is `horizontal vertical`, either with keywords
+# (left/center/right, top/center/bottom) or percentages. Higher vertical
+# % shows more of the bottom of the photo; lower shows more of the top.
+# Examples: "center 30%" (favors top), "center 70%" (favors bottom).
+hero_image_position: "center 55%"
+
+# --- URLs ---
+# Custom domain (purchased June 2026). `baseurl` stays empty because the
+# site lives at the root of cunhalab.com, not under a subpath.
+# This URL is used by jekyll-seo-tag, jekyll-feed, and jekyll-sitemap
+# to build absolute URLs in the RSS feed, sitemap, and Open Graph meta
+# tags. The CNAME file at the repo root tells GitHub Pages to serve
+# this same domain.
+url: "https://cunhalab.com"
+baseurl: ""
+
+# --- Social / external profiles (leave blank to hide the icon) ---
+social:
+  github: ""
+  bluesky: ""
+  twitter: ""
+  googlescholar: ""
+  orcid: ""
+  linkedin: ""
+  researchgate: "https://www.researchgate.net/profile/Tauana_Cunha"
+
+# --- Institution ---
+institution:
+  name: "Loyola University Chicago"
+  department: "Department of Biology"
+  address: "1050 W. Sheridan Rd., Chicago, IL 60660"
+  website: "https://www.luc.edu/biology/"
+
+# --- Build settings ---
+theme: null
+markdown: kramdown
+highlighter: rouge
+permalink: pretty
+timezone: America/Chicago
+# `safe: false` keeps custom plugins in _plugins/ enabled during local
+# preview (the github-pages gem otherwise defaults them off to mimic
+# GitHub's production sandbox).
+safe: false
+
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-paginate
+
+# --- Collections ---
+collections:
+  news:
+    output: true
+    permalink: /news/:year/:month/:day/:title/
+
+defaults:
+  - scope:
+      path: ""
+      type: news
+    values:
+      layout: news
+      # Marks every individual news post page so CSS can tighten its
+      # top spacing (same treatment Team / Teaching / etc. get).
+      body_class: news-post
+  - scope:
+      path: ""
+      type: pages
+    values:
+      layout: page
+
+# --- Exclusions ---
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - vendor
+  - node_modules
+  - widget
+  - .ruby-version
+  - .bundle
+  - old_website_archived    # Hugo archive used only for news migration
+  - _import_old_site        # alternate name for the archive
+
+# --- Sass ---
+sass:
+  sass_dir: _sass
+  style: compressed

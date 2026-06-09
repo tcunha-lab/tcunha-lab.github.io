@@ -1,0 +1,343 @@
+// ============================================================
+// Layout: containers, header, footer, main spacing
+// ============================================================
+
+.container {
+  width: 100%;
+  max-width: $container-max;
+  margin: 0 auto;
+  padding: 0 $space-5;
+
+  &--narrow { max-width: $container-narrow; }
+}
+
+.site-main {
+  min-height: 60vh;
+  padding-top: $nav-height;
+}
+
+// On the home page, the hero banner is full-bleed and should sit flush
+// against the sticky nav — no extra top gap. The nav is sticky, so it
+// already takes its own height in flow; we just drop the belt-and-suspenders
+// padding on this one page.
+body.home .site-main {
+  padding-top: 0;
+}
+
+// Home: the "Recent news" section already has its own background
+// (`.section--paper`) providing visual separation, so drop the footer's
+// top margin. The news section's own bottom padding is enough spacing
+// between the cards and the footer.
+body.home .site-footer {
+  margin-top: 0;
+}
+
+// Team: the default global $space-9 margin-top on the footer leaves a
+// huge white band below the Prospectives section. Shrink both the
+// page-body's bottom padding and the footer's top margin so the footer
+// sits closer without being glued to the box.
+body.team .page-body   { padding-bottom: $space-5; }
+body.team .site-footer { margin-top: $space-2; }
+
+// Pages that hide the page-header (Team, Publications, Research, News,
+// Teaching): zero out the global `.site-main { padding-top: $nav-height }`
+// offset because it duplicates the sticky nav's natural flow height. The
+// nav takes its own space in flow since it's sticky (not fixed), so this
+// padding was always double-counting. Content on these pages gets a
+// modest top gap from `.page-body` below instead.
+body.team .site-main,
+body.publications .site-main,
+body.research .site-main,
+body.news .site-main,
+body.news-post .site-main,
+body.teaching .site-main,
+body.fieldwork .site-main {
+  padding-top: 0;
+}
+
+// News post pages keep their `.page-header` (title + date). On Team /
+// Teaching pages the first heading sits at ($space-3 + $space-6) from
+// the top of `.site-main` — that's $space-3 from `.page-body`'s top
+// padding plus $space-6 from `.team-section-head` / `.page-section-head`'s
+// top margin. Mirror that exact offset here so the news post's date
+// label lines up with the heading row on Team / Teaching, giving a
+// consistent visual anchor across the headerless pages.
+body.news-post .page-header {
+  padding-top: $space-3 + $space-6;   // = 2.75rem
+  padding-bottom: $space-3;
+}
+
+// ---------- Header / Nav ----------
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba($color-bg, 0.92);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  border-bottom: 1px solid $color-border;
+
+  // Subtle Loyola-maroon hairline beneath the border — the institutional nod.
+  box-shadow: inset 0 -2px 0 0 rgba($color-accent, 0.08);
+}
+
+.site-header__inner {
+  height: $nav-height;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-5;
+}
+
+.site-brand {
+  font-family: $font-serif;
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: $color-primary-dark;
+  border: none;
+
+  &__name {
+    position: relative;
+    padding-bottom: 2px;
+    &::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 2px;
+      background: linear-gradient(90deg, $color-accent 0%, $color-primary 100%);
+      border-radius: 2px;
+      transform-origin: left;
+      transform: scaleX(0.35);
+      transition: transform $dur-med $ease;
+    }
+  }
+  &:hover &__name::after { transform: scaleX(1); }
+}
+
+.site-nav {
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    // Gap between nav links. Each link has its own horizontal padding
+    // (so the active-tab filled rectangle has proper inset), which
+    // already contributes to the space between items; the list gap is
+    // therefore smaller than it would be otherwise.
+    gap: $space-2;
+  }
+}
+
+.site-nav__link {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: $color-text;
+  border: none;
+  padding: $space-2 $space-3;
+  position: relative;
+  transition: color $dur-fast $ease, box-shadow $dur-fast $ease;
+
+  // Hover/focus underline — kept as a subtle affordance. Hidden when
+  // the link is the active tab (the outlined rectangle takes over).
+  &::after {
+    content: "";
+    position: absolute;
+    left: $space-3; right: $space-3; bottom: 2px;
+    height: 2px;
+    background: $color-accent;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform $dur-med $ease;
+  }
+
+  &:hover, &:focus-visible {
+    color: $color-primary-dark;
+    &::after { transform: scaleX(1); transform-origin: left; }
+  }
+
+  // Active tab: sharp-cornered outlined rectangle. Uses an inset
+  // box-shadow (rather than a real border) so the outline doesn't
+  // shift the text position or affect the row's layout.
+  &.is-active {
+    color: $color-primary-dark;
+    background: transparent;
+    box-shadow: inset 0 0 0 2px $color-primary-dark;
+
+    &:hover, &:focus-visible {
+      color: $color-primary-dark;
+      background: transparent;
+    }
+    &::after { display: none; }
+  }
+}
+
+// Mobile nav toggle
+.nav-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  padding: $space-2;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 5px;
+
+  span {
+    display: block;
+    width: 26px;
+    height: 2px;
+    background: $color-text;
+    border-radius: 2px;
+    transition: transform $dur-fast $ease, opacity $dur-fast $ease;
+  }
+
+  &[aria-expanded="true"] {
+    span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    span:nth-child(2) { opacity: 0; }
+    span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  }
+}
+
+@media (max-width: $bp-md) {
+  .nav-toggle { display: flex; }
+
+  .site-nav {
+    position: absolute;
+    top: $nav-height;
+    left: 0; right: 0;
+    background: $color-bg;
+    border-bottom: 1px solid $color-border;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height $dur-med $ease;
+
+    ul {
+      flex-direction: column;
+      padding: $space-4 $space-5;
+      gap: $space-3;
+    }
+  }
+  .site-nav.is-open {
+    max-height: 500px;
+  }
+  // Keep the horizontal padding from the default so the active-tab
+  // filled rectangle has proper inset on mobile too.
+  .site-nav__link { display: block; padding: $space-3; }
+}
+
+// ---------- Footer ----------
+.site-footer {
+  margin-top: $space-9;
+  padding: $space-7 0 $space-5;
+  background: $color-primary-dark;
+  color: rgba(#fff, 0.88);
+  font-size: 0.95rem;
+
+  a { color: #fff; border-bottom: 1px solid rgba(#fff, 0.3); }
+  a:hover { border-bottom-color: #fff; color: #fff; }
+
+  h4 {
+    font-family: $font-sans;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(#fff, 0.7);
+    margin-bottom: $space-3;
+  }
+
+  &__grid {
+    display: grid;
+    // Contact column (middle) gets the biggest share so the address line
+    // stays on one line. Gap tightened so the three columns fit.
+    grid-template-columns: 1fr 1.5fr 0.9fr;
+    gap: $space-5;
+
+    @media (max-width: $bp-md) {
+      grid-template-columns: 1fr;
+      gap: $space-5;
+    }
+  }
+
+  &__brand {
+    font-family: $font-serif;
+    font-size: 1.4rem;
+    color: #fff;
+    margin-bottom: $space-2;
+  }
+
+  &__tagline { color: rgba(#fff, 0.72); max-width: 32ch; }
+
+  &__bottom {
+    margin-top: $space-6;
+    padding-top: $space-4;
+    border-top: 1px solid rgba(#fff, 0.15);
+    color: rgba(#fff, 0.55);
+  }
+
+  address {
+    font-style: normal;
+    line-height: 1.55;
+  }
+}
+
+.social-list {
+  list-style: none;
+  padding: 0; margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+// ---------- Page header ----------
+.page-header {
+  padding: $space-7 $space-5 $space-5;
+  max-width: $container-max;
+
+  &__title {
+    margin-bottom: $space-2;
+  }
+
+  &__subtitle {
+    font-size: 1.15rem;
+    color: $color-text-muted;
+    max-width: 60ch;
+    margin: 0;
+  }
+
+  // Inline CTA link inside a subtitle (e.g. "Join the lab →" on Team).
+  // Rendered as a subtle colored pill-ish link so the eye finds it
+  // quickly without turning the subtitle into a button.
+  &__cta {
+    display: inline-block;
+    margin-left: $space-2;
+    padding: 0.1em 0.55em;
+    font-weight: 500;
+    color: $color-primary-dark;
+    background: rgba($color-primary, 0.08);
+    border: none;
+    border-radius: $radius-pill;
+    white-space: nowrap;
+    transition: background $dur-fast $ease, color $dur-fast $ease;
+
+    &:hover, &:focus-visible {
+      background: $color-primary;
+      color: #fff;
+    }
+  }
+}
+
+// Headerless pages: since there's no page-header to supply the top gap,
+// give the page-body a modest top padding so the first content row
+// isn't glued to the nav bar. Team and Teaching are excluded — their
+// first `.team-section-head` / `.page-section-head` already supplies
+// the breathing room via its top margin.
+body.publications .page-body,
+body.research .page-body,
+body.news .page-body {
+  padding-top: $space-5;
+}
+
+.page-body {
+  padding: $space-3 $space-5 $space-7;
+
+  & > * + * { margin-top: $space-4; }
+}

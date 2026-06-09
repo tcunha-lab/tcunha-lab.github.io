@@ -1,0 +1,67 @@
+// ============================================================
+// Design tokens — edit here to reshape the look of the whole site.
+// ============================================================
+
+// --- Color palette ---
+// Primary: muted forest/teal, the lab's identity color.
+$color-primary:        #2F5D56;   // deep forest-teal
+$color-primary-light:  #4A7D72;
+$color-primary-dark:   #1F3F3B;
+
+// Neutral light-gray background + paper tint (cool, modern).
+$color-bg:             #F7F7F8;   // page background — barely-there gray
+$color-surface:        #FFFFFF;   // cards / elevated panels
+$color-paper:          #EFEFF1;   // subtle section bands
+
+// Text.
+$color-text:           #1F2023;   // near-black, neutral
+$color-text-muted:     #5C5F66;
+$color-border:         #E2E2E4;
+
+// Loyola maroon — used sparingly as a subtle institutional nod.
+$color-accent:         #7A0019;   // maroon
+$color-accent-soft:    #B04A52;   // for hover/secondary
+
+// --- Typography ---
+$font-serif: "Lora", Georgia, "Times New Roman", serif;
+$font-sans:  "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+
+$font-size-base: 1.05rem;     // ~16.8px — comfortably readable
+$line-height-base: 1.65;
+
+// --- Spacing scale ---
+$space-1: 0.25rem;
+$space-2: 0.5rem;
+$space-3: 0.75rem;
+$space-4: 1rem;
+$space-5: 1.5rem;
+$space-6: 2rem;
+$space-7: 3rem;
+$space-8: 4rem;
+$space-9: 6rem;
+
+// --- Layout ---
+$container-max: 1120px;
+$container-narrow: 760px;
+$nav-height: 68px;
+
+// --- Radius & shadows ---
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 14px;
+$radius-pill: 999px;
+
+$shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
+$shadow-md: 0 4px 10px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+$shadow-lg: 0 12px 30px rgba(0,0,0,0.10);
+
+// --- Breakpoints ---
+$bp-sm: 480px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+
+// --- Motion ---
+$ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+$dur-fast: 160ms;
+$dur-med:  260ms;
+$dur-slow: 500ms;

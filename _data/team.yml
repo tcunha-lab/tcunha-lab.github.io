@@ -1,0 +1,143 @@
+# Team members — edit here or via the widget (widget/index.html).
+# role_group: pi, postdoc, grad, undergrad, visiting, staff, alumni
+- name: Tauana Cunha, PhD
+  role: Assistant Professor
+  role_group: pi
+  long_bio: >-
+    PhD, Harvard University, 2019/n
+
+    BSc, Universidade de São Paulo, 2012/n
+
+
+    Tauana grew up and started her career in Brazil, fascinated by the beautiful diversity of small invertebrate
+    critters that dominate the oceans. After obtaining her bachelor's at USP and PhD at Harvard, she became a
+    Smithsonian Institution Postdoctoral Fellow at STRI in Panamá, and then the Women's Board Postdoctoral Scientist at
+    the Field Museum of Natural History in Chicago. In 2025, Tauana joined the faculty of the Department of Biology at
+    Loyola University Chicago.
+  photo: /assets/images/team/tauana-cunha-phd.jpg
+  links:
+    - label: Email
+      url: mailto:tcunha@luc.edu
+    - label: Google Scholar
+      url: https://scholar.google.com/citations?user=kUYfYlYAAAAJ
+    - label: Research Gate
+      url: https://www.researchgate.net/profile/Tauana-Cunha
+    - label: Orcid
+      url: https://orcid.org/0000-0002-8493-2117
+    - label: Github
+      url: https://github.com/tauanajc
+- name: Sofia Orellana
+  role: MS in Bioinformatics
+  role_group: grad
+  bio: population genomics, bioinformatics
+  links:
+    - label: Email
+      url: sorellanarebolledo@luc.edu
+    - label: Github
+      url: https://github.com/sofia-orellanar
+  photo: /assets/images/team/sofia-orellana.jpg
+- name: Kussum Ghimire
+  role: MS in Biology
+  role_group: grad
+  bio: genomics, bioinformatics, conservation, woman in STEAM
+  long_bio: >-
+    I am a Biology graduate student and an aspiring genomics researcher. I am passionate about investigating what
+    genomic data can tell us about life, diversity, and survival./nn I'm currently working toward generating the first
+    whole-genome assembly for a native North American freshwater mussel species for my masters thesis. Catch me in the
+    lab and at my computer! My work brings together both wet-lab and computational components, including high molecular
+    weight DNA extraction, genomic library preparation, sequencing, and bioinformatic analyses for genome assembly and
+    annotation./nn Long-term, I'm interested in exploring adaptation of organisms in extreme environments through
+    genomics and how those findings can inform conservation decisions and protect biodiversity./nn Outside the lab, I
+    recharge through painting, DIY crafts, singing, and reading.
+  photo: /assets/images/team/kussum-ghimire.jpg
+  links:
+    - label: Email
+      url: kghimire@luc.edu
+    - label: LinkedIn
+      url: https://www.linkedin.com/in/kussssum/
+- name: Anna Ovington
+  role: MS in Bioinformatics
+  role_group: grad
+  photo: /assets/images/team/anna-ovington.jpg
+  links:
+    - label: Email
+      url: aovington@luc.edu
+- name: Ebony Ikeemeka
+  role: MS in Biology
+  role_group: grad
+  bio: |-
+    evolution, eDNA,/n
+    genomics, ecology
+  links:
+    - label: Email
+      url: eikeemeka@luc.edu
+  photo: /assets/images/team/ebony-ikeemeka.jpg
+- name: Afrah Khan
+  role: WISER & Bio Summer Fellow
+  role_group: undergrad
+  bio: |-
+    gastropods, *Zeidora*,
+    /ngenome assembly
+  links:
+    - label: Email
+      url: akhan91@luc.edu
+    - label: GitHub
+      url: https://github.com/aphruh
+    - label: Linkedin
+      url: https://www.linkedin.com/in/afrahzkhan?
+  photo: /assets/images/team/afrah-khan.jpg
+- name: Gabby Dawson
+  role: Undergrad Researcher
+  role_group: alumni
+  photo: /assets/images/team/gabby-dawson.jpg
+  links:
+    - label: Email
+      url: gdawson1@luc.edu
+- name: Cici Brown
+  role: Undergrad Researcher
+  role_group: undergrad
+  photo: /assets/images/team/cici-brown.jpg
+  links:
+    - label: Email
+      url: cbrown41@luc.edu
+- name: Krisjela Kallanxhi
+  role: Undergrad Researcher
+  role_group: undergrad
+  bio: |-
+    invertebrate research,
+    /nDNA analysis, genomics
+  links:
+    - label: Email
+      url: kkallanxhi@luc.edu
+    - label: Linkedin
+      url: >-
+        https://nam12.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.linkedin.com%2Fin%2Fkrisjela-kallanxhi%3Futm_source%3Dshare_via%26utm_content%3Dprofile%26utm_medium%3Dmember_ios&data=05%7C02%7Ctcunha%40luc.edu%7C146353a25c0c42cfb29608dea3f2de14%7C021f4fe32b9c48248378bbcf9ec5accb%7C0%7C0%7C639128460700222813%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=0StlwQpIhCJXYfGjADdduWYdW6IN7BUs%2FrqizNwXVyI%3D&reserved=0
+  photo: /assets/images/team/krisjela-kallanxhi.jpg
+- name: Nikko Alde
+  role: Undergrad Researcher
+  role_group: undergrad
+  bio: bioinformatics
+  photo: /assets/images/team/nikko-alde.jpg
+  links:
+    - label: Email
+      url: nalde@luc.edu
+- name: Abigail Montgomery
+  role: Undergrad Researcher
+  role_group: undergrad
+  bio: evolutionary ecology, invertebrate zoology, genomics
+  photo: /assets/images/team/abigail-montgomery.jpg
+  links:
+    - label: Email
+      url: amontgomery5@luc.edu
+- name: Monique van Dorssen
+  role: PhD Candidate, Monash Uni.
+  role_group: visiting
+  bio: evolution, population genomics, structural variants, marine invertebrates
+  photo: /assets/images/team/monique-van-dorssen.jpg
+  links:
+    - label: Email
+      url: monique.vandorssen@monash.edu
+    - label: Google Scholar
+      url: https://scholar.google.com/citations?user=9d02cvYAAAAJ&hl=en&oi=ao
+    - label: Bluesky
+      url: https://bsky.app/profile/monique-vdor.bsky.social

@@ -1,0 +1,45 @@
+# Jekyll build output
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+
+# Bundler
+.bundle/
+vendor/
+Gemfile.lock
+
+# OS & editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Widget (R Shiny) — local renv/scratch, keep the app itself
+widget/.Rproj.user/
+widget/renv/library/
+widget/renv/staging/
+widget/.Rhistory
+widget/*.Rproj
+
+# Node (if you ever add it)
+node_modules/
+
+# Hugo archive of the previous website — kept locally only for news
+# migration reference; never push the 1.7 GB tree to GitHub.
+old_website_archived/
+
+# Also ignore any temporary scratch folder used during news migration.
+_import_old_site/
+
+# Project brief / AI assistant context — kept on disk for local
+# reference (Claude reads it as project context) but not pushed to
+# the public repo. Case-insensitive cover for macOS / Linux / CI.
+CLAUDE.md
+claude.md
+
+# Local-only runbook for first deploy, DNS, and post-launch steps.
+# Useful for Tauana's reference but not for visitors or contributors.
+PUBLISH.md

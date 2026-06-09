@@ -1,0 +1,112 @@
+// ============================================================
+// Base / reset / typographic defaults
+// ============================================================
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: $font-sans;
+  font-size: $font-size-base;
+  line-height: $line-height-base;
+  color: $color-text;
+  background: $color-bg;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: $font-serif;
+  font-weight: 600;
+  line-height: 1.2;
+  color: $color-primary-dark;
+  margin: 0 0 $space-4;
+  letter-spacing: -0.01em;
+}
+
+h1 { font-size: clamp(2rem, 4vw, 3rem); }
+h2 { font-size: clamp(1.6rem, 3vw, 2.25rem); }
+h3 { font-size: clamp(1.25rem, 2.2vw, 1.5rem); }
+h4 { font-size: 1.1rem; }
+
+p {
+  margin: 0 0 $space-4;
+}
+
+// Default link color is the Loyola maroon ($color-accent). Inline links
+// in body copy stand out clearly against the dark gray text.
+// Hover transitions to the dark teal ($color-primary-dark) — a clear
+// color shift that confirms the link is interactive without leaning on
+// the underline alone. Components that need specialized link colors
+// (nav, card titles, team links, etc.) override these rules locally.
+a {
+  color: $color-accent;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color $dur-fast $ease, border-color $dur-fast $ease;
+
+  &:hover, &:focus-visible {
+    color: $color-primary-dark;
+    border-bottom-color: $color-primary-dark;
+  }
+}
+
+img, svg, video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid $color-border;
+  margin: $space-6 0;
+}
+
+code, pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: $color-paper;
+  border-radius: $radius-sm;
+}
+code { padding: 0.1em 0.35em; font-size: 0.9em; }
+pre  { padding: $space-4; overflow-x: auto; }
+
+blockquote {
+  margin: $space-5 0;
+  padding: $space-3 $space-5;
+  border-left: 3px solid $color-accent;
+  color: $color-text-muted;
+  font-style: italic;
+}
+
+// Skip-link for accessibility
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: $color-primary-dark;
+  color: #fff;
+  padding: $space-2 $space-4;
+  z-index: 200;
+  &:focus { top: 0; }
+}
+
+// Focus ring
+:focus-visible {
+  outline: 2px solid $color-accent;
+  outline-offset: 2px;
+}
+
+// Selection
+::selection { background: rgba($color-accent, 0.25); }
+
+// Respect reduced motion
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+}

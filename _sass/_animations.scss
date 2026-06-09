@@ -1,0 +1,53 @@
+// ============================================================
+// Scroll-reveal animations
+// Any element marked [data-reveal] is hidden until it scrolls
+// into view, then fades + slides gently into place.
+//
+// IMPORTANT: the hidden state is gated behind the .js-reveal-ready
+// class on <html>, which reveal.js adds as its very first line.
+// If the script fails to load OR JS is disabled, the class never
+// appears and content stays fully visible — no invisible pages.
+// ============================================================
+
+.js-reveal-ready [data-reveal] {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity $dur-slow $ease,
+    transform $dur-slow $ease;
+  will-change: opacity, transform;
+}
+
+.js-reveal-ready [data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+// Stagger a list of children of a [data-reveal-group]
+.js-reveal-ready [data-reveal-group] > * {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity $dur-slow $ease,
+    transform $dur-slow $ease;
+}
+
+.js-reveal-ready [data-reveal-group].is-visible > * {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@for $i from 1 through 12 {
+  .js-reveal-ready [data-reveal-group].is-visible > *:nth-child(#{$i}) {
+    transition-delay: #{$i * 60}ms;
+  }
+}
+
+// Respect reduced motion (repeated here in case base hasn't loaded yet)
+@media (prefers-reduced-motion: reduce) {
+  .js-reveal-ready [data-reveal],
+  .js-reveal-ready [data-reveal-group] > * {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

@@ -1,0 +1,15 @@
+# Top navigation. Reorder or edit labels here — the nav reads from this file.
+- name: Home
+  url: /
+- name: Team
+  url: /team/
+- name: Research
+  url: /research/
+- name: Publications
+  url: /publications/
+- name: Teaching
+  url: /teaching/
+- name: Field Work
+  url: /fieldwork/
+- name: News
+  url: /news/

@@ -1,0 +1,37 @@
+{%- comment -%}
+  Renders a news card. Pass a news item as `include.item`.
+{%- endcomment -%}
+<article class="news-card" data-reveal>
+  {% if include.item.image %}
+    <a class="news-card__thumb" href="{{ include.item.url | relative_url }}">
+      <img src="{{ include.item.image | relative_url }}" alt="{{ include.item.image_alt | default: include.item.title }}" loading="lazy">
+    </a>
+  {% endif %}
+  <div class="news-card__body">
+    <p class="news-card__date">{{ include.item.date | date: "%b %-d, %Y" }}</p>
+    <h3 class="news-card__title">
+      <a href="{{ include.item.url | relative_url }}">{{ include.item.title }}</a>
+    </h3>
+    {%- comment -%}
+      Summary text: explicit excerpt if set, otherwise a truncated
+      version of the body with an ellipsis. Long excerpts also get
+      truncated so the cards stay visually uniform on the home page.
+    {%- endcomment -%}
+    {%- assign summary_md = "" -%}
+    {%- if include.item.excerpt -%}{%- assign summary_md = include.item.excerpt -%}{%- endif -%}
+    {%- if summary_md == "" -%}
+      {%- assign summary_md = include.item.content | strip_html | strip -%}
+    {%- endif -%}
+    {%- assign summary_html = summary_md | markdownify -%}
+    {%- assign summary_plain = summary_html | strip_html | strip_newlines -%}
+    {%- if summary_plain != "" -%}
+      <div class="news-card__excerpt">
+        {%- if summary_plain.size > 200 -%}
+          {{ summary_plain | truncate: 200 }}
+        {%- else -%}
+          {{ summary_html }}
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+  </div>
+</article>

@@ -1,0 +1,236 @@
+---
+layout: page
+title: Team
+permalink: /team/
+body_class: team
+hide_title: true
+---
+
+{%- comment -%}
+  Team members are stored in _data/team.yml. Each entry has a role_group
+  (pi, postdoc, grad, undergrad, visiting, staff, alumni). We render
+  groups in the order below.
+
+  Card layout is derived automatically from role_group:
+    - pi → "list" (large photo on left, full bio paragraph beside it)
+    - everyone else → "grid" (compact card, optional hover popup)
+
+  Field semantics:
+    - bio       — short keywords shown on the grid card
+    - long_bio  — full paragraph bio. For the PI it renders directly
+                  on the list card; for everyone else it appears in
+                  the hover popup over a faded photo.
+{%- endcomment -%}
+
+{% assign group_order = "pi,postdoc,grad,undergrad,visiting,staff,alumni" | split: "," %}
+{% assign group_labels = "Principal Investigator,Postdoctoral Researchers,Graduate Students,Undergraduate Students,Visiting Scholars,Lab Staff,Lab Alumni" | split: "," %}
+
+<div class="team-layout" data-layout="auto">
+
+{% for group in group_order %}
+  {% assign members = site.data.team | where: "role_group", group %}
+  {% if members.size > 0 %}
+    {% assign idx = forloop.index0 %}
+    <section class="team-section" data-group="{{ group }}" data-reveal>
+      <div class="team-section-head">
+        <h2>{{ group_labels[idx] }}</h2>
+        {%- comment -%}
+          Put the "Join the lab" CTA on the right side of the PI
+          section's heading row, so it's visible near the top of the
+          page without adding an extra row above.
+        {%- endcomment -%}
+        {% if group == 'pi' %}
+          <a href="#join" class="page-header__cta">Join the lab &rarr;</a>
+        {% endif %}
+      </div>
+
+      <div class="team-grid" data-reveal-group>
+        {% for m in members %}
+          {%- comment -%}
+            Auto layout: PI gets the "list" treatment (paragraph bio
+            sits beside the photo), everyone else gets the compact
+            "grid" card. No need for a per-member `layout:` field.
+            For grid cards with a long_bio, the photo becomes a hover
+            trigger that shows a popup; for the PI the long_bio is
+            rendered directly on the card.
+          {%- endcomment -%}
+          {%- assign card_layout = "grid" -%}
+          {%- if group == "pi" -%}{%- assign card_layout = "list" -%}{%- endif -%}
+          {%- assign show_popup = false -%}
+          {%- if m.long_bio and card_layout == "grid" -%}{%- assign show_popup = true -%}{%- endif -%}
+          {%- assign bio_id = "bio-" | append: group | append: "-" | append: forloop.index -%}
+          <div class="team-card" data-layout="{{ card_layout }}">
+            {% if m.photo %}
+              <div class="team-card__photo{% if show_popup %} has-long-bio{% endif %}"
+                   {% if show_popup %}data-bio-id="{{ bio_id }}" tabindex="0" aria-label="Show bio for {{ m.name }}"{% endif %}>
+                <img src="{{ m.photo | relative_url }}" alt="Photo of {{ m.name }}">
+                {% if show_popup %}<span class="team-card__photo-hint" aria-hidden="true">about</span>{% endif %}
+              </div>
+            {% else %}
+              <div class="team-card__photo is-placeholder">{{ m.name | slice: 0, 1 }}</div>
+            {% endif %}
+
+            <div class="team-card__body">
+              <h3 class="team-card__name">{{ m.name }}</h3>
+              <p class="team-card__role">{{ m.role }}</p>
+
+              {%- comment -%}
+                Card body text:
+                  - PI: full paragraph bio (m.long_bio) shown next to photo
+                  - others: short keywords (m.bio) shown on compact card
+                Both share the same `/n`, `/nn`, markdown conventions.
+              {%- endcomment -%}
+              {%- assign body_text = m.bio -%}
+              {%- if card_layout == "list" and m.long_bio -%}
+                {%- assign body_text = m.long_bio -%}
+              {%- endif -%}
+              {% if body_text %}
+                {%- assign _bio = body_text
+                    | replace: "/nn", "
+
+"
+                    | replace: "/n", "<br>" -%}
+                <div class="team-card__bio">{{ _bio | markdownify }}</div>
+              {% endif %}
+
+              {% if m.links %}
+                <div class="team-card__links">
+                  {% for l in m.links %}
+                    {% include social-link.html link=l %}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+{% endfor %}
+
+{% if site.data.team.size == 0 %}
+  <p data-reveal><em>Team members will appear here as they're added (use the widget or edit <code>_data/team.yml</code>).</em></p>
+{% endif %}
+
+</div><!-- /.team-layout -->
+
+{%- comment -%}
+  Hidden "source" elements that hold each member's rendered long bio.
+  Lives outside the team-layout / team-grid so it's never affected by
+  grid layout, reveal animations, or any other parent CSS. The team-bio
+  JS below copies content from these into the single popup element on
+  hover.
+
+  Single popup element follows. position: fixed; pure hover-driven
+  open/close — no clicks, no Escape, no scroll lock.
+{%- endcomment -%}
+<div class="team-bio-sources" hidden aria-hidden="true">
+  {% for group in group_order %}
+    {%- comment -%}
+      Skip PI — their long_bio is already rendered on the list card
+      itself, so there's no popup to populate.
+    {%- endcomment -%}
+    {% if group != "pi" %}
+      {% assign members = site.data.team | where: "role_group", group %}
+      {% for m in members %}
+        {% if m.long_bio %}
+          {%- assign bio_id = "bio-" | append: group | append: "-" | append: forloop.index -%}
+          {%- assign _long = m.long_bio | replace: "/nn", "
+
+" | replace: "/n", "<br>" -%}
+          <div data-bio-id="{{ bio_id }}"
+               data-name="{{ m.name | escape }}"
+               data-role="{{ m.role | escape }}"
+               data-photo="{{ m.photo | relative_url }}">
+            {{ _long | markdownify }}
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+</div>
+
+<div class="team-bio-popup" id="team-bio-popup" aria-hidden="true">
+  <div class="team-bio-popup__content">
+    <div class="team-bio-popup__bg"></div>
+    <h3 class="team-bio-popup__name"></h3>
+    <p class="team-bio-popup__role"></p>
+    <div class="team-bio-popup__bio"></div>
+  </div>
+</div>
+
+<script>
+  // Long-bio popup. Pure hover: appears when the cursor enters a photo
+  // with `data-bio-id`, disappears when it leaves. No clicks, no
+  // close button, no scroll lock. Content is copied from the matching
+  // hidden source div into the single popup element each time.
+  (function () {
+    const popup    = document.getElementById('team-bio-popup');
+    if (!popup) return;
+    // Move the popup to <body> so it isn't trapped by an ancestor's
+    // `transform` (the page-body has `data-reveal` which animates
+    // with translateY, and any transformed ancestor becomes the
+    // containing block for `position: fixed` descendants — meaning
+    // the popup would otherwise be positioned relative to page-body,
+    // not the viewport).
+    document.body.appendChild(popup);
+    const elName   = popup.querySelector('.team-bio-popup__name');
+    const elRole   = popup.querySelector('.team-bio-popup__role');
+    const elBio    = popup.querySelector('.team-bio-popup__bio');
+    const elBg     = popup.querySelector('.team-bio-popup__bg');
+    const sources  = {};
+    document.querySelectorAll('.team-bio-sources > [data-bio-id]').forEach(s => {
+      sources[s.dataset.bioId] = s;
+    });
+
+    function show(photo) {
+      const src = sources[photo.dataset.bioId];
+      if (!src) return;
+      elName.textContent = src.dataset.name || '';
+      elRole.textContent = src.dataset.role || '';
+      elBio.innerHTML    = src.innerHTML;
+      elBg.style.backgroundImage = src.dataset.photo
+        ? `url('${src.dataset.photo}')`
+        : '';
+      popup.classList.add('is-visible');
+      popup.setAttribute('aria-hidden', 'false');
+    }
+    function hide() {
+      popup.classList.remove('is-visible');
+      popup.setAttribute('aria-hidden', 'true');
+    }
+
+    document.querySelectorAll('.team-card__photo[data-bio-id]').forEach(photo => {
+      photo.addEventListener('mouseenter', () => show(photo));
+      photo.addEventListener('mouseleave', hide);
+      // Keyboard equivalents so the popup is still accessible by tab.
+      photo.addEventListener('focus', () => show(photo));
+      photo.addEventListener('blur',  hide);
+    });
+  })();
+</script>
+
+<section id="join" class="prospectives" data-reveal>
+  <h2>Prospective students &amp; postdocs</h2>
+  {%- comment -%}
+    Three short audience paragraphs with bolded inline lead-ins, plus
+    one paragraph of guidance for the first email. Compact prose keeps
+    the box footprint close to the original placeholder version. Edit
+    URLs / funding mechanisms here if the lab's situation changes.
+  {%- endcomment -%}
+  <p>
+    <strong>MS students.</strong> Loyola offers two thesis-track Master's programs (& fellowships) that fit our lab: the <a href="https://catalog.luc.edu/graduate-professional/graduate-school/arts-sciences/biology/biology-ms/">MS in Biology</a> and the <a href="https://catalog.luc.edu/graduate-professional/graduate-school/arts-sciences/bioinformatics/bioinformatics-ms/">MS in Bioinformatics</a>. Reach out before you apply so we can talk about how your interests align with our research.
+  </p>
+  <p>
+    <strong>Undergraduates.</strong> Loyola undergrads interested in biodiversity, evolution and/or bioinformatics are welcome to inquire about joining the lab. New students usually start helping with ongoing projects and are encouraged to develop their own.
+  </p>
+  <p>
+    <strong>Postdocs.</strong> Prospective postdocs are encouraged to look into funding opportunities early on (e.g. NSF, Fulbright, Walder Foundation). Get in touch to discuss possible projects. Grant-based positions will be advertised when available.
+  </p>
+  <p>
+    <strong>&raquo; When you write to me</strong>, please include a short paragraph on your past experiences and how your interests and skills might be a good fit for the lab, plus your CV.
+  </p>
+  {%- assign site_mail_parts = site.email | split: "@" -%}
+  <p>Contact: <a href="#" class="js-mail" data-u="{{ site_mail_parts[0] }}" data-d="{{ site_mail_parts[1] }}" data-fill="text">{{ site_mail_parts[0] }} [at] {{ site_mail_parts[1] }}</a></p>
+</section>

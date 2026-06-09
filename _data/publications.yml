@@ -1,0 +1,220 @@
+# Publications — edit here or via the widget (widget/index.html).
+# Mark the PI author with `pi: true` so their name renders in bold.
+- title: A target capture approach for molluscs aids in reconstructing the Molluscan Tree of Life
+  authors:
+    - name: Moles J
+    - name: Borrajo O
+    - name: Bergmeier F
+    - name: Brenzinger B
+    - name: Cunha TJ
+      pi: true
+    - name: Schrödl M
+    - name: Chen Z
+  year: 2024
+  venue: Authorea
+  doi: 10.22541/au.172993334.44521672/v1
+  url: https://doi.org/10.22541/au.172993334.44521672/v1
+  open_access: true
+- title: Population genomics of a sailing siphonophore reveals genetic structure in the open ocean
+  authors:
+    - name: Church SH
+    - name: Abedon RB
+    - name: Ahuja N
+    - name: Anthony CJ
+    - name: Destanović D
+    - name: Ramirez DA
+    - name: Rojas LM
+    - name: Albinsson ME
+    - name: Álvarez Trasobares I
+    - name: Bergemann RE
+    - name: Bogdanovic O
+    - name: Burdick DR
+    - name: Cunha TJ
+      pi: true
+    - name: Damian-Serrano A
+    - name: D’Elía G
+    - name: Dion KB
+    - name: Doyle TK
+    - name: Gonçalves JM
+    - name: Gonzalez Rajal A
+    - name: Haddock SH
+    - name: Helm RR
+    - name: Le Gouvello D
+    - name: Lewis ZR
+    - name: Magalhães BI
+    - name: Mańko MK
+    - name: Mayorga-Adame CG
+    - name: de Mendoza A
+    - name: Moura CJ
+    - name: Munro C
+    - name: Nel R
+    - name: Oguchi K
+    - name: Perelman JN
+    - name: Prieto L
+    - name: Pitt KA
+    - name: Roughan M
+    - name: Schaeffer A
+    - name: Schmidt AL
+    - name: Sellanes J
+    - name: Wilson NG
+    - name: Yamamoto G
+    - name: Lazo-Wasem EA
+    - name: Simon C
+    - name: Decker MB
+    - name: Coughlan JM
+    - name: Dunn CW
+  year: 2025
+  venue: Current Biology
+  doi: 10.1016/j.cub.2025.05.066
+  url: https://doi.org/10.1016/j.cub.2025.05.066
+  researchgate: >-
+    https://www.researchgate.net/publication/392849093_Population_genomics_of_a_sailing_siphonophore_reveals_genetic_structure_in_the_open_ocean
+  cover: /assets/images/publications/2025-current-biology-cover.jpg
+- title: >-
+    Rampant loss of universal metazoan genes revealed by a chromosome-level genome assembly of the parasitic
+    Nematomorpha
+  authors:
+    - name: Cunha TJ
+      pi: true
+    - name: de Medeiros BAS
+    - name: Lord A
+    - name: Sørensen MV
+    - name: Giribet G
+  year: 2023
+  venue: Current Biology
+  doi: 10.1016/j.cub.2023.07.003
+  open_access: true
+  media:
+    - name: CNN
+      url: https://www.cnn.com/2023/07/18/world/horsehair-worms-parasites-missing-genes-scn/index.html
+    - name: IFLScience
+      url: https://www.iflscience.com/host-manipulating-parasitic-worms-lack-genes-every-other-animal-has-69877
+    - name: NatGeo Spain
+      url: https://www.nationalgeographic.com.es/mundo-animal/descubren-que-a-gusano-que-induce-a-sus-victimas-suicido-le-faltan-30-genes-que-compartimos-resto-seres-vivos_20427
+- title: >-
+    Expanding on Our Knowledge of Ecdysozoan Genomes: A Contiguous Assembly of the Meiofaunal Priapulan *Tubiluchus
+    corallicola*
+  authors:
+    - name: Lord A
+    - name: Cunha TJ
+      pi: true
+    - name: de Medeiros BAS
+    - name: Sato S
+    - name: Khost DA
+    - name: Sackton TB
+    - name: Giribet G
+  year: 2023
+  venue: Genome Biology and Evolution
+  doi: 10.1093/gbe/evad103
+  open_access: true
+- title: >-
+    Sizing Up the Onychophoran Genome: Repeats, Introns, and Gene Family Expansion Contribute to Genome Gigantism in
+    *Epiperipatus broadwayi*
+  authors:
+    - name: Sato S
+    - name: Cunha TJ
+      pi: true
+    - name: de Medeiros BAS
+    - name: Khost DA
+    - name: Sackton TB
+    - name: Giribet G
+  year: 2023
+  venue: Genome Biology and Evolution
+  doi: 10.1093/gbe/evad021
+  open_access: true
+- title: >-
+    Photographic Checklist, DNA Barcoding, and New Species of Sea Slugs and Snails from the Faafu Atoll, Maldives
+    (Gastropoda: Heterobranchia and Vetigastropoda)
+  authors:
+    - name: Cunha TJ
+      pi: true
+    - name: Fernández-Simón J
+    - name: Petrula M
+    - name: Giribet G
+    - name: Moles J
+  year: 2023
+  venue: Diversity
+  doi: 10.3390/d15020219
+  open_access: true
+- title: Investigating sources of conflict in deep phylogenomics of vetigastropod snails
+  authors:
+    - name: Cunha TJ
+      pi: true
+    - name: Reimer JD
+    - name: Giribet G
+  year: 2022
+  venue: Systematic Biology
+  doi: 10.1093/sysbio/syab071
+  open_access: true
+- title: Comprehensive species sampling and sophisticated algorithmic approaches refute the monophyly of Arachnida
+  authors:
+    - name: Ballesteros JA
+    - name: Santibanez-Lopez CE
+    - name: Baker CM
+    - name: Benavides LR
+    - name: Cunha TJ
+      pi: true
+    - name: Gainett G
+    - name: Ontano AZ
+    - name: Setton EVW
+    - name: Arango CP
+    - name: Gavish-Regev E
+    - name: Harvey MS
+    - name: Wheeler WC
+    - name: Hormiga G
+    - name: Giribet G
+    - name: Sharma PP
+  year: 2022
+  venue: Molecular Biology and Evolution
+  doi: 10.1093/molbev/msac021
+  open_access: true
+- title: 'Tightening the girdle: phylotranscriptomics of Polyplacophora'
+  authors:
+    - name: Moles J
+    - name: Cunha TJ
+      pi: true
+    - name: Lemer S
+    - name: Combosch D
+    - name: Giribet G
+  year: 2021
+  venue: Journal of Molluscan Studies
+  doi: 10.1093/mollus/eyab019
+  open_access: true
+- title: A congruent topology for deep gastropod relationships
+  authors:
+    - name: Cunha TJ
+      pi: true
+    - name: Giribet G
+  year: 2019
+  venue: 'Proceedings of the Royal Society B: Biological Sciences'
+  doi: 10.1098/rspb.2018.2776
+  open_access: true
+- title: >-
+    Putting keyhole limpets on the map: phylogeny and biogeography of the globally distributed marine family
+    Fissurellidae (Vetigastropoda, Mollusca)
+  authors:
+    - name: Cunha TJ
+      pi: true
+    - name: Lemer S
+    - name: Bouchet P
+    - name: Kano Y
+    - name: Giribet G
+  year: 2019
+  venue: Molecular Phylogenetics and Evolution
+  doi: 10.1016/j.ympev.2019.02.008
+  researchgate: >-
+    https://www.researchgate.net/publication/331156977_Putting_keyhole_limpets_on_the_map_phylogeny_and_biogeography_of_the_globally_distributed_marine_family_Fissurellidae_Vetigastropoda_Mollusca
+- title: >-
+    Macrofauna associated with the brown algae *Dictyota* spp. (Phaeophyceae, Dictyotaceae) in the Sebastião Gomes Reef
+    and Abrolhos Archipelago, Bahia, Brazil
+  authors:
+    - name: Cunha TJ
+      pi: true
+    - name: Güth AZ
+    - name: Bromberg S
+    - name: Sumida PYG
+  year: 2013
+  venue: Continental Shelf Research
+  doi: 10.1016/j.csr.2013.09.001
+  researchgate: >-
+    https://www.researchgate.net/publication/259082801_Macrofauna_associated_with_the_brown_algae_Dictyota_spp_Phaeophyceae_Dictyotaceae_in_the_Sebastiao_Gomes_Reef_and_Abrolhos_Archipelago_Bahia_Brazil

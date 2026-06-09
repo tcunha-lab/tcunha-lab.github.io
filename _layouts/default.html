@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+{% include head.html %}
+<!-- Arm the reveal animation hide-state BEFORE first paint so there's no
+     flash of content before it fades in, and schedule a safety watchdog
+     that force-reveals everything after 2s. This way even if reveal.js
+     fails to load (network error, CSP, typo), content is never stuck
+     invisible. If THIS script errors, the class never applies and
+     content stays fully visible (the safest possible failure mode). -->
+<script>
+  document.documentElement.classList.add('js-reveal-ready');
+  setTimeout(function () {
+    var els = document.querySelectorAll('[data-reveal], [data-reveal-group]');
+    for (var i = 0; i < els.length; i++) els[i].classList.add('is-visible');
+  }, 2000);
+</script>
+<body class="{% if page.body_class %}{{ page.body_class }}{% endif %}">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  {% include nav.html %}
+
+  <main id="main" class="site-main">
+    {{ content }}
+  </main>
+
+  {% include footer.html %}
+
+  <script src="{{ '/assets/js/reveal.js' | relative_url }}" defer></script>
+  <script src="{{ '/assets/js/nav.js' | relative_url }}" defer></script>
+  <script src="{{ '/assets/js/email-obfuscate.js' | relative_url }}" defer></script>
+  <script src="{{ '/assets/js/external-links.js' | relative_url }}" defer></script>
+</body>
+</html>

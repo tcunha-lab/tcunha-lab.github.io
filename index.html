@@ -1,0 +1,73 @@
+---
+layout: default
+title: Home
+body_class: home
+hide_title: true
+---
+
+{%- comment -%}
+  Hero = full-width banner, photo only (no text). The team photo is
+  set as the section's CSS background so we can crop it via
+  `background-position` (tunable in _config.yml as `hero_image_position`).
+  If no photo is present yet, `.hero--no-image` kicks in and the banner
+  falls back to a subtle gradient so the page still looks intentional.
+{%- endcomment -%}
+{%- assign hero_candidates = "/assets/images/team-hero.jpg,/assets/images/team-hero.jpeg,/assets/images/team-hero.png" | split: "," -%}
+{%- assign hero_path = "" -%}
+{%- for candidate in hero_candidates -%}
+  {%- for f in site.static_files -%}
+    {%- if f.path == candidate -%}{%- assign hero_path = candidate -%}{%- break -%}{%- endif -%}
+  {%- endfor -%}
+  {%- if hero_path != "" -%}{%- break -%}{%- endif -%}
+{%- endfor -%}
+
+<section class="hero{% if hero_path == '' %} hero--no-image{% endif %}"
+  {%- if hero_path != '' %} style="background-image: url('{{ hero_path | relative_url }}'); background-position: {{ site.hero_image_position | default: 'center 65%' }};"{% endif -%}>
+  <div class="hero__overlay" aria-hidden="true"></div>
+  <div class="hero__titlebox">
+    <h1 class="hero__title">Tauana <em>Cunha</em> Lab</h1>
+    <p class="hero__tagline">{{ site.tagline }}</p>
+  </div>
+</section>
+
+{%- comment -%}
+  Home intro: About blurb on the left, stacked action buttons on the
+  right. The 2-column grid narrows the prose column for readability.
+{%- endcomment -%}
+<section class="home-intro" data-reveal>
+  <div class="container home-intro__inner">
+    <p class="home-intro__body">
+Our lab investigates the evolution of invertebrate animals across variable spatial and temporal scales. Whether diving for snails in tropical waters, sequencing DNA from decades-old museum specimens, or assembling reference genomes from non-model species, our research uncovers the evolutionary relationships, biogeographic histories, and genomic innovations that have generated Earth's spectacular invertebrate diversity. Marine gastropods are a major focus of our work, but we are passionate about biodiversity across the animal tree of life.
+<!-- to understand how evolution shapes biodiversity patterns. -->
+We welcome students and postdocs excited about comparative work, animal evolution, and computational biology to join our team at Loyola University Chicago.
+    </p>
+
+    <div class="home-intro__actions">
+      <a href="{{ '/research/' | relative_url }}" class="btn btn--primary">Our research</a>
+      <a href="{{ '/team/#join' | relative_url }}" class="btn btn--ghost">Join the lab</a>
+    </div>
+  </div>
+</section>
+
+<section class="section section--paper section--news">
+  <div class="container">
+    {% assign recent_news = site.news | sort: 'date' | reverse | slice: 0, 4 %}
+    <div class="section__head section__head--split" data-reveal>
+      <h2>Recent news</h2>
+      {% if recent_news.size > 0 %}
+        <a href="{{ '/news/' | relative_url }}" class="btn btn--ghost">All news &rarr;</a>
+      {% endif %}
+    </div>
+
+    {% if recent_news.size > 0 %}
+      <div class="news-grid news-grid--compact" data-reveal-group>
+        {% for item in recent_news %}
+          {% include news-card.html item=item %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p data-reveal><em>News items will appear here once you add them.</em></p>
+    {% endif %}
+  </div>
+</section>
+

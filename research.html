@@ -1,0 +1,93 @@
+---
+layout: page
+title: Research
+permalink: /research/
+body_class: research
+hide_title: true
+---
+
+<div class="page-body__intro" data-reveal>
+  <p>
+<!--    <em>Placeholder:</em> A short intro paragraph framing the research of the lab —
+    what questions drive the work, what systems you use, and what connects the
+    different research lines below.-->
+  </p>
+</div>
+
+{%- comment -%}
+  RESEARCH AREAS
+  --------------
+  Each <section class="research-area"> below is one block, alternating
+  image-left / image-right. The order is controlled by where
+  <div class="research-area__image"> sits inside
+  <div class="research-area__inner">: first child → left, second → right.
+
+  TO ADD OR REPLACE AN IMAGE:
+    1. Drop the file into assets/images/research/
+    2. Inside the relevant <div class="research-area__image">, replace
+       the <!-- placeholder --> block with an <img> tag like this one:
+
+         <img src="{{ "/assets/images/research/FILENAME.png" | relative_url }}"
+              alt="Short description for screen readers and SEO">
+
+       - `relative_url` prepends the site's base path so the URL works
+         both locally (`jekyll serve`) and on the deployed site.
+       - `alt` is only shown if the image fails to load, but it is
+         important for accessibility and search indexing — describe
+         the image in a few words.
+{%- endcomment -%}
+
+<section class="research-area" data-reveal>
+  <div class="research-area__inner">
+    <div class="research-area__image">
+      <img src="{{ '/assets/images/research/hairworm_functionalloss.png' | relative_url }}"
+           alt="Loss of ciliary machinery genes in parasitic hairworms">
+    </div>
+    <div>
+      <h2 class="research-area__title">Comparative Genomics of Non-Model Invertebrates</h2>
+      <p><em>What genomic changes underlie morphological innovations and the evolution of animal body plans?</em> Most invertebrate groups are disproportionately underrepresented in genomic resources despite their outstanding diversity, limiting our understanding of the genetic basis of unique or important convergent traits. We contribute to broader efforts to sequence high-quality genomes for non-model species for a diversity of phyla, e.g. Nematomorpha, Priapulida, Onychophora, Mollusca. We then use these resources to understand how animal genomes evolve and what they reveal about major evolutionary transitions. Our work has uncovered surprising insights, such as the complete loss of the universal genetic machinery responsible for making cilia in an entire phylum of animals (the parasitc nematomorphs).
+<!--By studying these oddball invertebrates, we illuminate the spectrum of animal genome diversity and the evolutionary forces that shape it. -->
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="research-area" data-reveal>
+  <div class="research-area__inner">
+    <div>
+      <h2 class="research-area__title">Evolutionary Relationships Across the Tree of Life</h2>
+      <p><em>How are invertebrate animals related to each other?</em> Research in many fields of biology rely on accurate phylogenies. We use phylogenomics to resolve relationships at multiple scales: from ancient divergences between lineages dating back 400+ million years, to genus-level relationships within diverse families. We apply state-of-the-art methods to tackle difficult phylogenetic problems and address sources of error where standard approaches fail due to rapid radiations, ancient divergences, or conflicting signals in genomic data. We are also experimenting with historical specimens in museum collections to recover genomic-level data from organisms for which it might be hard to obtain fresh samples for molecular work.</p>
+<!-- This work not only clarifies the evolutionary history of major invertebrate groups but also advances our methodological toolkit for phylogenomic inference. -->
+    </div>
+    <div class="research-area__image">
+      <img src="{{ '/assets/images/research/gastropod_phylogeny.png' | relative_url }}"
+           alt="Phylogenomic tree of gastropod molluscs">
+    </div>
+  </div>
+</section>
+
+<section class="research-area" data-reveal>
+  <div class="research-area__inner">
+    <div class="research-area__image">
+      <img src="{{ '/assets/images/research/fissurellidae_map.png' | relative_url }}"
+           alt="Geographical distribution of Fissurellidae">
+    </div>
+    <div>
+      <h2 class="research-area__title">Marine Biogeography and Population Connectivity</h2>
+      <p><em>What drives patterns of distribution of marine life across oceans?</em> We investigate biogeographic patterns and population connectivity in marine invertebrates, particularly gastropods, to understand deep-time patterns of distribution, and how larval stages affect dispersal across distances. Our work integrates phylogeography, population genetics, and biogeographic modeling to reconstruct dispersal routes and test hypotheses about connectivity. By combining field collections with museum specimens, we can examine distribution patterns across both space and time, learning how historical events and contemporary processes structure marine biodiversity.</p>
+    </div>
+  </div>
+</section>
+
+<section class="research-area" data-reveal>
+  <div class="research-area__inner">
+    <div>
+      <h2 class="research-area__title">Biodiversity Discovery and Marine Exploration</h2>
+      <p><em>What species are out there, and how do we document them?</em> A large amount of marine biodiversity remains to be discovered and better understood. Documenting this hidden diversity is fundamental to understanding the evolution of life on our planet and for conservation in an era of rapid environmental change. Our lab conducts fieldwork across the globe and draws from deep-sea expeditions to find new diversity. Each survey produces interconnected outputs feeding our other research lines: species inventories that establish baseline data for monitoring ecosystem change, voucher specimens deposited in museum collections for future research, a photographic record of live animals for identification, DNA barcodes and genomic data that support comparative studies.</p>
+    </div>
+    <div class="research-area__image">
+      <img src="{{ '/assets/images/research/maldives-vetigastropods.jpeg' | relative_url }}"
+           alt="Vetigastropoda of the Maldives">
+    </div>
+  </div>
+</section>

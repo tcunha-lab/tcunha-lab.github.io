@@ -1,0 +1,3244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cunha Lab — Site Updater</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- js-yaml for clean YAML read/write. Internet required on first run; then cached. -->
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  <!-- pdf.js for converting uploaded PDFs (e.g. figures pulled straight
+       from a paper) into images. Page 1 is rendered to a canvas and
+       handed to the SquareCropper like any other photo. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
+
+  <style>
+    :root {
+      /* Palette mirrors the live site (_sass/_tokens.scss). Keep in sync
+         manually when you tweak the main site's colors. */
+      --primary: #2F5D56;
+      --primary-dark: #1F3F3B;
+      --accent: #7A0019;
+      --accent-soft: #B04A52;
+      --bg: #F7F7F8;        /* was #FAF7F1 cream → neutral light gray */
+      --surface: #FFFFFF;
+      --paper: #EFEFF1;     /* was #F2EDE3 */
+      --text: #1F2023;      /* was #222019 */
+      --muted: #5C5F66;     /* was #5E584E */
+      --border: #E2E2E4;    /* was #E3DBCB */
+      --radius: 8px;
+      --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      color: var(--text); background: var(--bg); line-height: 1.55;
+    }
+    h1, h2, h3 { font-family: "Lora", Georgia, serif; color: var(--primary-dark); margin: 0 0 .5em; font-weight: 600; }
+    header.app {
+      padding: 1.5rem 2rem; border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      flex-wrap: wrap;
+    }
+    header.app h1 { font-size: 1.4rem; margin: 0; }
+    header.app h1 em { color: var(--accent); font-style: normal; }
+    .folder-status { font-size: .85rem; color: var(--muted); display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    .folder-status b { color: var(--primary-dark); }
+
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface); padding: 0 1rem; }
+    .tab {
+      padding: .9rem 1.4rem; background: transparent; border: none; cursor: pointer;
+      font: 500 .95rem "Inter", sans-serif; color: var(--muted);
+      border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 150ms var(--ease);
+    }
+    .tab:hover { color: var(--primary-dark); }
+    .tab.active { color: var(--primary-dark); border-bottom-color: var(--accent); }
+
+    main { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .row { margin-bottom: 1.1rem; }
+    /* Two-column row used for fields that are both optional and
+       compact (Cover image + Media coverage). Stacks on narrow widgets
+       so the inputs don't get squeezed. */
+    .row-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 720px) {
+      .row-2col { grid-template-columns: 1fr; }
+    }
+    label {
+      display: block; font-weight: 500; font-size: .9rem; color: var(--primary-dark);
+      margin-bottom: .35rem;
+    }
+    label .hint { font-weight: 400; color: var(--muted); font-size: .82rem; margin-left: .35rem; }
+    input[type=text], input[type=date], input[type=number], input[type=url], input[type=email],
+    select, textarea {
+      width: 100%; padding: .6rem .75rem;
+      font: 400 .95rem "Inter", sans-serif; color: var(--text);
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(47, 93, 86, 0.15);
+    }
+    textarea { min-height: 110px; resize: vertical; font-family: inherit; }
+    textarea.mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .88rem; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* Keywords + Bio + Photo side-by-side on the Team form. Textareas
+       keep their natural row-count height (scrollable when content
+       overflows) so the form stays compact. */
+    .team-photo-bio { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+    @media (max-width: 640px) { .team-photo-bio { grid-template-columns: 1fr; } }
+    .team-photo-bio textarea { resize: vertical; overflow: auto; }
+
+    .links-list, .authors-list { display: flex; flex-direction: column; gap: .5rem; }
+    .link-row, .author-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: .5rem; align-items: center; }
+
+    /* Gallery rows on the News form: each row has its own SquareCropper
+       (drag/zoom + letterbox checkbox) on the left, and the file picker /
+       alt text / remove button stacked on the right. Same interactive
+       cropping experience as the main card image. */
+    .gallery-list { display: flex; flex-direction: column; gap: .75rem; }
+    .gallery-row {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 1rem;
+      align-items: start;
+      padding: .6rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--paper);
+    }
+    .gallery-row__cropper { min-width: 180px; }
+    .gallery-row__controls {
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+    }
+    .gallery-row__controls label {
+      display: flex;
+      flex-direction: column;
+      gap: .25rem;
+      font-size: .85rem;
+      color: var(--text);
+    }
+    .gallery-row__controls .btn { align-self: flex-start; }
+    .gallery-row__letterbox-label {
+      flex-direction: row !important;
+      align-items: center;
+      gap: .35rem !important;
+      font-size: .8rem !important;
+      color: var(--muted) !important;
+    }
+    /* Fieldwork expedition card. Collapsible <details>; each holds a
+       title/slug pair plus the list of photo rows for that expedition. */
+    .fw-exp {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 0;
+    }
+    .fw-exp__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .75rem 1rem;
+      cursor: pointer;
+      font-family: var(--font-sans, inherit);
+    }
+    .fw-exp__head::marker { content: ""; }   /* hide default disclosure triangle */
+    .fw-exp__head::-webkit-details-marker { display: none; }
+    .fw-exp__head .hint { color: var(--muted); font-weight: 400; }
+    .fw-exp__head-actions { display: flex; align-items: center; gap: .4rem; flex-shrink: 0; }
+    .fw-exp[open] .fw-exp__head { border-bottom: 1px solid var(--border); }
+    .fw-exp__body { padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+    .reorder-btn {
+      width: 1.8rem; height: 1.8rem;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 4px; color: var(--muted); cursor: pointer;
+      font-size: .8rem;
+      transition: all 150ms var(--ease);
+    }
+    .reorder-btn:not(:disabled):hover { color: var(--accent); border-color: var(--accent); }
+    .reorder-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    /* Card-image checkbox row — sits at the top of the controls column.
+       Slightly emphasized vs. the other labels since "this photo is
+       the card image" is the most important decision in the row. */
+    .gallery-row__card-label {
+      flex-direction: row !important;
+      align-items: center;
+      gap: .4rem !important;
+      font-size: .9rem !important;
+      cursor: pointer;
+    }
+    .gallery-row__card-label input { margin: 0; }
+    .gallery-row__card-label .hint { font-weight: 400; color: var(--muted); }
+    /* Highlight the row marked as the card image so it's easy to spot
+       which photo will be used as the index thumbnail / post hero. */
+    .gallery-row:has(input[data-action="card-image"]:checked) {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(122, 0, 25, 0.08);
+    }
+    @media (max-width: 640px) {
+      .gallery-row { grid-template-columns: 1fr; }
+    }
+    .link-row.author { grid-template-columns: 1fr auto auto; }
+    .remove-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      width: 36px; height: 36px; border-radius: var(--radius); cursor: pointer;
+      transition: all 150ms var(--ease);
+    }
+    .remove-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .6rem 1.1rem; border-radius: 999px; cursor: pointer;
+      font: 500 .9rem "Inter", sans-serif; border: 1px solid transparent;
+      transition: all 150ms var(--ease);
+    }
+    .btn.primary { background: var(--primary); color: #fff; }
+    .btn.primary:hover { background: var(--primary-dark); }
+    .btn.ghost { background: transparent; color: var(--primary-dark); border-color: var(--primary); }
+    .btn.ghost:hover { background: var(--primary); color: #fff; }
+    .btn.accent { background: var(--accent); color: #fff; }
+    .btn.accent:hover { background: var(--accent-soft); }
+    .btn.small { padding: .35rem .75rem; font-size: .82rem; }
+    .btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+    .actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.25rem; }
+
+    .existing {
+      background: var(--paper); border-radius: var(--radius); padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .existing h3 { font-size: 1rem; margin: 0 0 .75rem; color: var(--muted); font-family: "Inter", sans-serif; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; font-size: .78rem; }
+    .existing-item {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .55rem .75rem; border-radius: 4px; background: var(--surface);
+      margin-bottom: .35rem; font-size: .92rem;
+    }
+    .existing-item > div:nth-child(2) { flex: 1; min-width: 0; }
+    /* When a cover thumb is inserted between `.reorder` and the text
+       column (pubs list only), the text column moves to nth-child(3).
+       `.existing-item__text` covers both cases without a position hack. */
+    .existing-item > .existing-item__text { flex: 1; min-width: 0; }
+    .existing-item:last-child { margin-bottom: 0; }
+    .existing-item .meta { color: var(--muted); font-size: .82rem; }
+    .existing-item .actions-inline { display: flex; gap: .35rem; }
+    .pub-row-cover {
+      width: 38px; height: auto; max-height: 56px;
+      object-fit: contain;
+      border-radius: 3px; border: 1px solid var(--border);
+      flex-shrink: 0; background: #fff;
+    }
+
+    /* Reorder (▲▼) buttons inside existing-item */
+    .existing-item .reorder { display: flex; flex-direction: column; gap: 2px; }
+    .reorder-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      width: 22px; height: 18px; padding: 0; line-height: 1;
+      border-radius: 3px; cursor: pointer; font-size: .7rem;
+      transition: all 120ms var(--ease);
+    }
+    .reorder-btn:hover:not([disabled]) { border-color: var(--primary); color: var(--primary); }
+    .reorder-btn[disabled] { opacity: .3; cursor: not-allowed; }
+
+    /* Collapsible group sections — shared styling for Team (by role)
+       and News (by year). Kept behind a single class pair so the
+       look is consistent and maintenance is one-place-only. */
+    .team-group, .news-group { margin-bottom: .65rem; }
+    .team-group > summary,
+    .news-group > summary {
+      cursor: pointer; user-select: none;
+      padding: .5rem .75rem; border-radius: 4px; background: var(--surface);
+      font-size: .92rem; list-style: none;
+      display: flex; align-items: center; gap: .4rem;
+      transition: background 120ms var(--ease);
+    }
+    .team-group > summary::-webkit-details-marker,
+    .news-group > summary::-webkit-details-marker { display: none; }
+    .team-group > summary::before,
+    .news-group > summary::before {
+      content: "▸"; color: var(--muted); font-size: .75rem;
+      transition: transform 120ms var(--ease);
+    }
+    .team-group[open] > summary::before,
+    .news-group[open] > summary::before { transform: rotate(90deg); }
+    .team-group > summary:hover,
+    .news-group > summary:hover { background: var(--bg); }
+    .team-group > summary .count,
+    .news-group > summary .count { color: var(--muted); font-weight: 400; font-size: .82rem; }
+    .team-group > .existing-item,
+    .news-group > .existing-item { margin-top: .35rem; }
+
+    .toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: var(--primary-dark); color: #fff;
+      padding: .8rem 1.2rem; border-radius: var(--radius);
+      box-shadow: 0 8px 20px rgba(0,0,0,.15);
+      opacity: 0; transform: translateY(10px);
+      transition: all 200ms var(--ease); pointer-events: none;
+      max-width: 380px;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--accent); }
+
+    details {
+      background: var(--paper); border-radius: var(--radius); padding: .8rem 1rem; margin-top: 1rem;
+    }
+    summary { cursor: pointer; font-weight: 500; color: var(--primary-dark); }
+    pre.preview {
+      background: var(--bg); padding: 1rem; border-radius: 4px; overflow-x: auto;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .82rem; margin: .75rem 0 0;
+      border: 1px solid var(--border);
+    }
+
+    .muted-note {
+      background: #FFF9E8; border-left: 3px solid #E8BE4A;
+      padding: .7rem 1rem; border-radius: var(--radius);
+      font-size: .88rem; color: #4D3A00; margin-bottom: 1rem;
+    }
+
+    .helper {
+      font-size: .85rem; color: var(--muted); margin-top: .25rem;
+    }
+
+    .thumb-preview {
+      display: flex; align-items: center; gap: .75rem; margin-top: .5rem;
+      font-size: .85rem; color: var(--muted);
+    }
+    .thumb-preview img {
+      width: 52px; height: 52px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border);
+    }
+    .team-thumb { border-radius: 50% !important; }
+
+    /* ---- photo cropper (team tab) ---- */
+    .cropper { margin-top: .5rem; display: none; }
+    .cropper.is-active { display: block; }
+    .cropper__stage {
+      position: relative;
+      width: 280px; height: 280px;
+      margin: 0 auto;
+      background: #222;
+      border-radius: var(--radius);
+      overflow: hidden;
+      touch-action: none;
+      cursor: grab;
+      user-select: none;
+    }
+    .cropper__stage.dragging { cursor: grabbing; }
+    .cropper__stage canvas { display: block; width: 100%; height: 100%; }
+    .cropper__stage::after {
+      /* circular mask overlay — shows what will be visible on the site */
+      content: "";
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+      pointer-events: none;
+    }
+    .cropper__controls {
+      display: flex; align-items: center; gap: .75rem;
+      margin-top: .6rem; flex-wrap: wrap;
+    }
+    .cropper__controls label { font-size: .85rem; color: var(--muted); }
+    .cropper__controls input[type="range"] { flex: 1; min-width: 140px; }
+    .cropper__hint { font-size: .8rem; color: var(--muted); margin-top: .4rem; }
+
+    /* Rectangular variant (used for the news card image). Stage size
+       comes from inline styles set by the Cropper class so the box
+       can match whatever aspect ratio the user picked. The rectangular
+       mask shows the safe-area outline without darkening anything,
+       since the entire canvas is the safe area. */
+    .cropper--rect .cropper__stage {
+      width: 180px;
+      height: 180px;     /* SquareCropper overwrites these inline at init */
+      border-radius: 4px;
+    }
+    .cropper--rect .cropper__stage::after {
+      border-radius: 0;
+      box-shadow: none;
+      outline: 2px solid rgba(255,255,255,0.85);
+      outline-offset: -2px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header class="app">
+  <h1><em>Cunha Lab</em> — Site Updater</h1>
+  <div class="folder-status" id="folder-status">
+    <span>Folder:</span>
+    <b id="folder-name">not selected</b>
+    <button class="btn ghost small" id="pick-folder">Choose project folder</button>
+    <button class="btn ghost small" id="reconnect-folder" style="display:none;">Reconnect</button>
+    <button class="btn ghost small" id="forget-folder" style="display:none;" title="Forget the saved folder and pick a new one">Forget</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-panel="news">News</button>
+  <button class="tab" data-panel="team">Team</button>
+  <button class="tab" data-panel="publications">Publications</button>
+  <button class="tab" data-panel="fieldwork">Fieldwork</button>
+</nav>
+
+<main>
+
+<!-- ============================= NEWS PANEL ============================= -->
+<section class="panel active" id="panel-news">
+  <h2>News items</h2>
+
+  <h3 id="news-form-heading">Add a news item</h3>
+  <form id="news-form">
+    <input type="hidden" id="news-edit-file" value="">
+
+    <div class="row two-col">
+      <div>
+        <label for="news-title">Title</label>
+        <input type="text" id="news-title" required placeholder="e.g., Our first paper is out">
+      </div>
+      <div>
+        <label for="news-date">Date</label>
+        <input type="date" id="news-date" required>
+      </div>
+    </div>
+
+    <!-- Excerpt + Body side-by-side. Both kept short by default (4 rows)
+         so they don't dominate the form for typical short news posts.
+         Each textarea remains user-resizable via the corner handle. -->
+    <div class="row two-col">
+      <div>
+        <label for="news-excerpt">Excerpt <span class="hint">(1–2 sentences; shows on cards)</span></label>
+        <textarea id="news-excerpt" maxlength="400" rows="4"></textarea>
+      </div>
+      <div>
+        <label for="news-body">Body <span class="hint">(Markdown — **bold**, [links](url))</span></label>
+        <textarea id="news-body" class="mono" rows="4" placeholder="Write the full news post here."></textarea>
+      </div>
+    </div>
+
+    <!-- Photos: 0..N photos for the post. Each row has the same cropper
+         + controls layout. Tick "Card image" on whichever row should be
+         used as the news-index thumbnail / post hero — only one row can
+         be checked at a time. If you don't check any, the first row is
+         used as the card image by default. -->
+    <div class="row">
+      <label>
+        Photos
+        <span class="hint">(any number — tick one to use as the card image)</span>
+        <button type="button" class="btn ghost small" id="news-add-gallery" style="margin-left:.5rem;">+ Add photo</button>
+      </label>
+      <div class="gallery-list" id="news-gallery"></div>
+    </div>
+
+    <details>
+      <summary>Preview file that will be saved</summary>
+      <pre class="preview" id="news-preview"></pre>
+    </details>
+
+    <div class="actions">
+      <button type="button" class="btn primary" id="news-save">Save news item</button>
+      <button type="button" class="btn ghost" id="news-reset">Clear form</button>
+    </div>
+  </form>
+
+  <!-- Existing news list lives below the form so the form is always
+       in view when the tab is opened. The list is grouped by year
+       (collapsible, all collapsed by default) so it doesn't clutter
+       the view as the archive grows. -->
+  <div id="news-existing" style="margin-top:2rem;"></div>
+</section>
+
+<!-- ============================= TEAM PANEL ============================= -->
+<section class="panel" id="panel-team">
+  <h2 id="team-form-heading">Add a new member</h2>
+  <form id="team-form">
+    <input type="hidden" id="team-edit-index" value="">
+
+    <!-- Top row: Name + Role title. These are the frequently-edited fields. -->
+    <div class="row two-col">
+      <div>
+        <label for="team-name">Name</label>
+        <input type="text" id="team-name" required placeholder="e.g., Jane Doe">
+      </div>
+      <div>
+        <label for="team-role">Role title</label>
+        <input type="text" id="team-role" required placeholder="e.g., PhD Student">
+      </div>
+    </div>
+
+    <!-- Role group decides the card layout automatically: PI gets the
+         large list-style card; everyone else uses the compact grid
+         card. No layout dropdown needed. -->
+    <div class="row">
+      <label for="team-role-group">Role group</label>
+      <select id="team-role-group" required>
+        <option value="pi">Principal Investigator</option>
+        <option value="postdoc">Postdoctoral Researcher</option>
+        <option value="grad">Graduate Student</option>
+        <option value="undergrad" selected>Undergraduate</option>
+        <option value="visiting">Visiting Scholar</option>
+        <option value="staff">Staff</option>
+        <option value="alumni">Alumni</option>
+      </select>
+      <p class="helper">Move a current member to "Alumni" when they leave. PI cards always use the large list layout; everyone else uses the compact grid.</p>
+    </div>
+
+    <!-- Links sit above Bio/Photo so the social icons live with the
+         identity fields at the top of the form. -->
+    <div class="row">
+      <label>Links <button type="button" class="btn ghost small" id="team-add-link" style="margin-left:.5rem;">+ Add link</button></label>
+      <div class="links-list" id="team-links"></div>
+    </div>
+
+    <!-- Bio on the left, Photo on the right. Bio textarea is stretched
+         to match the height of the photo/cropper column so the two sit
+         balanced. Redundant cropper instructions are omitted — the UI
+         is self-explanatory once a file is picked. -->
+    <div class="row team-photo-bio">
+      <div>
+        <label for="team-bio">Keywords <span class="hint">(short — shown on the grid card)</span></label>
+        <textarea id="team-bio" rows="3" maxlength="1500" placeholder="Comma-separated keywords (e.g., genomics, conservation, woman in STEAM)"></textarea>
+        <p class="helper"><code>/n</code> for line break; <code>/nn</code> for paragraph break. Markdown (<code>**bold**</code>, <code>*italic*</code>, <code>[link](url)</code>) is also supported.</p>
+
+        <label for="team-long-bio" style="margin-top:.75rem;">Bio <span class="hint">(optional — popup on hover; shown on PI card directly)</span></label>
+        <textarea id="team-long-bio" rows="5" placeholder="Longer personal bio. Same formatting as Keywords: /n, /nn, **bold**, *italic*, [link](url)."></textarea>
+      </div>
+      <div>
+        <label for="team-photo">Photo</label>
+        <input type="file" id="team-photo" accept="image/*">
+        <div class="thumb-preview" id="team-photo-preview" style="display:none;"></div>
+
+        <!-- Crop stage (only shown after a file is picked) -->
+        <div class="cropper" id="team-cropper">
+          <div class="cropper__stage" id="crop-stage">
+            <canvas id="crop-canvas" width="560" height="560"></canvas>
+          </div>
+          <div class="cropper__controls">
+            <label for="crop-zoom">Zoom</label>
+            <input type="range" id="crop-zoom" min="1" max="4" step="0.01" value="1">
+            <button type="button" class="btn ghost small" id="crop-reset">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn primary" id="team-save">Save member</button>
+      <button type="button" class="btn ghost" id="team-reset">Clear form</button>
+    </div>
+  </form>
+
+  <!-- Existing team list lives below the form so the form is always
+       in view when the tab is opened. The list is grouped by role
+       (collapsible) so alumni, which will grow over time, don't clutter
+       the view. -->
+  <div id="team-existing" style="margin-top:2rem;"></div>
+</section>
+
+<!-- ========================= PUBLICATIONS PANEL ========================= -->
+<section class="panel" id="panel-publications">
+  <h2>Publications</h2>
+
+  <h3 id="pub-form-heading">Add a publication</h3>
+  <form id="pub-form">
+    <input type="hidden" id="pub-edit-index" value="">
+
+    <div class="row">
+      <label for="pub-doi">DOI <span class="hint">(paste a DOI and click Fetch — we'll auto-fill the rest)</span></label>
+      <div style="display:flex; gap:.5rem;">
+        <input type="text" id="pub-doi" placeholder="10.1234/xyz" style="flex:1;">
+        <button type="button" class="btn accent" id="pub-fetch">Fetch from Crossref</button>
+      </div>
+      <p class="helper" id="pub-fetch-status"></p>
+    </div>
+
+    <div class="row">
+      <label for="pub-title">Title <span class="hint">(wrap words in <code>*…*</code> for italics, e.g. species names)</span></label>
+      <input type="text" id="pub-title" required placeholder="e.g., Genome assembly of *Epiperipatus broadwayi*">
+    </div>
+
+    <div class="row">
+      <label>Authors <button type="button" class="btn ghost small" id="pub-add-author" style="margin-left:.5rem;">+ Add author</button>
+        <span class="hint">(tick "PI" on Tauana's entry — it renders bold)</span>
+      </label>
+      <div class="authors-list" id="pub-authors"></div>
+    </div>
+
+    <div class="row two-col">
+      <div>
+        <label for="pub-year">Year</label>
+        <input type="number" id="pub-year" min="1900" max="2100" required>
+      </div>
+      <div>
+        <label for="pub-venue">Venue / Journal</label>
+        <input type="text" id="pub-venue">
+      </div>
+    </div>
+
+    <div class="row two-col">
+      <div>
+        <label for="pub-url">URL</label>
+        <input type="url" id="pub-url">
+      </div>
+      <div>
+        <label for="pub-preprint">Preprint URL</label>
+        <input type="url" id="pub-preprint">
+      </div>
+    </div>
+
+    <div class="row two-col">
+      <div>
+        <label for="pub-code">Code URL <span class="hint">(optional)</span></label>
+        <input type="url" id="pub-code">
+      </div>
+      <div>
+        <label for="pub-data">Data URL <span class="hint">(optional)</span></label>
+        <input type="url" id="pub-data">
+      </div>
+    </div>
+
+    <div class="row two-col">
+      <div>
+        <label for="pub-open-access" style="display:flex; align-items:center; gap:.5rem; cursor:pointer;">
+          <input type="checkbox" id="pub-open-access" style="width:auto; margin:0;">
+          <span>Open access</span>
+        </label>
+        <p class="helper">If on, shows an <em>Open access</em> pill on the site. If off, a <em>PDF on ResearchGate</em> link is added automatically.</p>
+      </div>
+      <div>
+        <label for="pub-researchgate">ResearchGate URL <span class="hint">(per-paper; optional)</span></label>
+        <input type="url" id="pub-researchgate" placeholder="https://www.researchgate.net/publication/…">
+        <p class="helper">Leave blank to fall back to your ResearchGate profile URL (from <code>_config.yml</code>).</p>
+      </div>
+    </div>
+
+    <!--
+      Cover + Media coverage sit side by side in a 2-column row.
+      Both are optional and most papers will have neither, so we don't
+      want them eating a full row each. Stacks to single column on
+      narrow widgets (handled by .row-2col CSS).
+    -->
+    <div class="row row-2col">
+      <div>
+        <label for="pub-cover">Cover image <span class="hint">(optional — e.g. journal cover or a key figure; appears as a thumbnail on the right of the entry)</span></label>
+        <input type="file" id="pub-cover" accept="image/*">
+        <div class="thumb-preview" id="pub-cover-preview" style="display:none;"></div>
+        <p class="helper" id="pub-cover-current" style="display:none;"></p>
+      </div>
+      <div>
+        <label>Media coverage <button type="button" class="btn ghost small" id="pub-add-media" style="margin-left:.5rem;">+ Add link</button>
+          <span class="hint">(optional — news articles or press about the paper)</span>
+        </label>
+        <div class="links-list" id="pub-media-list"></div>
+        <p class="helper">Each link becomes a small maroon pill on the publications page after the journal line (e.g. <em>CNN</em>, <em>IFLScience</em>). Keep names short — they're for quick scanning.</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn primary" id="pub-save">Save publication</button>
+      <button type="button" class="btn ghost" id="pub-reset">Clear form</button>
+    </div>
+  </form>
+
+  <!-- Existing publications list lives below the form (mirrors News
+       and Team layout). Grouped by year, collapsible, all collapsed
+       by default. -->
+  <div id="pub-existing" style="margin-top:2rem;"></div>
+</section>
+
+<!-- ============================= FIELDWORK PANEL ============================= -->
+<section class="panel" id="panel-fieldwork">
+  <h2>Fieldwork expeditions</h2>
+  <p class="helper" style="margin-top:-0.5rem;">
+    Each expedition becomes a section on the <em>Fieldwork</em> page with a
+    title and a photo gallery. Reorder photos or expeditions with ▲▼.
+    Each expedition has its own <strong>Save expedition</strong> button —
+    edits in collapsed cards stay in memory until you save them.
+  </p>
+
+  <div id="fieldwork-list" style="display:flex; flex-direction:column; gap:1.25rem;"></div>
+
+  <div class="actions" style="margin-top:1rem;">
+    <button type="button" class="btn ghost" id="fieldwork-add">+ Add expedition</button>
+  </div>
+</section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+ * Cunha Lab — Site Updater widget
+ * ============================================================ */
+
+const state = {
+  rootHandle: null,        // FileSystemDirectoryHandle for the project folder
+  team: [],                // parsed array from _data/team.yml
+  pubs: [],                // parsed array from _data/publications.yml
+  news: [],                // [{filename, frontmatter, body}]
+};
+
+const hasFSA = 'showDirectoryPicker' in window;
+
+// ---------- Persist the chosen folder across sessions ----------
+// The File System Access API lets us stash a FileSystemDirectoryHandle in
+// IndexedDB and restore it on page load. The browser still gates read/write
+// on a permission check; if still 'granted', we're back in business with
+// zero clicks. If 'prompt', we need one click from the user to re-confirm.
+const IDB_DB = 'cunhalab-widget';
+const IDB_STORE = 'handles';
+const IDB_KEY = 'root';
+
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSetHandle(handle) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(handle, IDB_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGetHandle() {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbClearHandle() {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(IDB_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// Attempt to reuse a previously saved folder handle.
+// `interactive` = true means we're allowed to prompt for permission
+// (i.e. we're inside a click handler — browsers require a user gesture).
+async function tryRestoreFolder(interactive = false) {
+  if (!hasFSA) return false;
+  const handle = await idbGetHandle().catch(() => null);
+  if (!handle) return false;
+  const opts = { mode: 'readwrite' };
+  let perm = await handle.queryPermission(opts);
+  if (perm === 'prompt' && interactive) {
+    perm = await handle.requestPermission(opts);
+  }
+  if (perm !== 'granted') return false;
+  state.rootHandle = handle;
+  document.getElementById('folder-name').textContent = handle.name;
+  await loadAll();
+  return true;
+}
+
+// ---------- Tab switching ----------
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.panel).classList.add('active');
+  });
+});
+
+// ---------- Toast helper ----------
+function toast(msg, err=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.toggle('error', err);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ---------- Folder picker ----------
+document.getElementById('pick-folder').addEventListener('click', async () => {
+  if (!hasFSA) {
+    alert('Your browser does not support the File System Access API (used to write files directly into the project folder).\n\nUse Chrome, Edge, Arc, or Brave for the smoothest experience. In other browsers, the widget falls back to downloading files you drop into the folder manually.');
+    return;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    state.rootHandle = handle;
+    document.getElementById('folder-name').textContent = handle.name;
+    await loadAll();
+    await idbSetHandle(handle).catch(() => {});  // remember for next time
+    updateFolderButtons({ connected: true, needsReconnect: false });
+    toast('Project folder connected: ' + handle.name);
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('Error: ' + e.message, true);
+  }
+});
+
+// Forget the saved folder (e.g. to switch projects)
+document.getElementById('forget-folder')?.addEventListener('click', async () => {
+  await idbClearHandle().catch(() => {});
+  state.rootHandle = null;
+  document.getElementById('folder-name').textContent = 'not selected';
+  updateFolderButtons({ connected: false, needsReconnect: false });
+  toast('Saved folder forgotten. Click "Choose project folder" to pick one.');
+});
+
+// ---------- File system helpers ----------
+async function getDir(path, { create = false } = {}) {
+  if (!state.rootHandle) throw new Error('No folder selected');
+  let dir = state.rootHandle;
+  for (const part of path.split('/').filter(Boolean)) {
+    dir = await dir.getDirectoryHandle(part, { create });
+  }
+  return dir;
+}
+async function readFile(path) {
+  const parts = path.split('/');
+  const name = parts.pop();
+  const dir = parts.length ? await getDir(parts.join('/')) : state.rootHandle;
+  const fh = await dir.getFileHandle(name);
+  return await (await fh.getFile()).text();
+}
+async function writeFile(path, content) {
+  const parts = path.split('/');
+  const name = parts.pop();
+  const dir = parts.length ? await getDir(parts.join('/'), { create: true }) : state.rootHandle;
+  const fh = await dir.getFileHandle(name, { create: true });
+  const w = await fh.createWritable();
+  await w.write(content);
+  await w.close();
+}
+async function writeBinary(path, arrayBuffer) {
+  const parts = path.split('/');
+  const name = parts.pop();
+  const dir = parts.length ? await getDir(parts.join('/'), { create: true }) : state.rootHandle;
+  const fh = await dir.getFileHandle(name, { create: true });
+  const w = await fh.createWritable();
+  await w.write(arrayBuffer);
+  await w.close();
+}
+// Read a file from the project as a File object, so we can turn it
+// into an objectURL for previews / loading into the cropper.
+async function readBinary(path) {
+  const parts = path.split('/');
+  const name = parts.pop();
+  const dir = parts.length ? await getDir(parts.join('/')) : state.rootHandle;
+  const fh = await dir.getFileHandle(name);
+  return await fh.getFile();
+}
+
+async function listDir(path) {
+  const dir = await getDir(path);
+  const entries = [];
+  for await (const [name, h] of dir.entries()) entries.push({ name, handle: h });
+  return entries;
+}
+async function deleteFile(path) {
+  const parts = path.split('/');
+  const name = parts.pop();
+  const dir = parts.length ? await getDir(parts.join('/')) : state.rootHandle;
+  await dir.removeEntry(name);
+}
+
+// Fallback: save file via download link (for Safari/Firefox users)
+function downloadFile(filename, content, mime='text/plain') {
+  const blob = new Blob([content], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// ---------- Load data from project folder ----------
+async function loadAll() {
+  await loadTeam();
+  await loadPublications();
+  await loadNews();
+  await loadFieldwork();
+  renderTeamExisting();
+  renderPubExisting();
+  renderNewsExisting();
+  renderFieldwork();
+}
+
+async function loadTeam() {
+  try {
+    const text = await readFile('_data/team.yml');
+    const parsed = jsyaml.load(text);
+    state.team = Array.isArray(parsed) ? parsed : [];
+  } catch (e) { state.team = []; }
+}
+async function loadPublications() {
+  try {
+    const text = await readFile('_data/publications.yml');
+    const parsed = jsyaml.load(text);
+    state.pubs = Array.isArray(parsed) ? parsed : [];
+  } catch (e) { state.pubs = []; }
+}
+async function loadNews() {
+  state.news = [];
+  try {
+    const entries = await listDir('_news');
+    for (const e of entries) {
+      if (!e.name.endsWith('.md')) continue;
+      const fh = await e.handle.getFile();
+      const text = await fh.text();
+      const { fm, body } = parseFrontMatter(text);
+      state.news.push({ filename: e.name, fm, body });
+    }
+    state.news.sort((a,b) => (b.fm.date||'').localeCompare(a.fm.date||''));
+  } catch (e) { /* no _news folder yet */ }
+}
+
+// ---------- Front matter parse/serialize ----------
+function parseFrontMatter(text) {
+  if (!text.startsWith('---')) return { fm: {}, body: text };
+  const end = text.indexOf('\n---', 3);
+  if (end < 0) return { fm: {}, body: text };
+  const fmText = text.slice(3, end).trim();
+  const body = text.slice(end + 4).replace(/^\n/, '');
+  let fm = {};
+  try { fm = jsyaml.load(fmText) || {}; } catch (e) { /* ignore */ }
+  return { fm, body };
+}
+function buildMdFile(fm, body) {
+  const y = jsyaml.dump(fm, { lineWidth: 120, noRefs: true });
+  return `---\n${y}---\n\n${body || ''}\n`;
+}
+
+// ---------- YAML writers with helpful top comments ----------
+const TEAM_HEADER = `# Team members — edit here or via the widget (widget/index.html).
+# role_group: pi, postdoc, grad, undergrad, visiting, staff, alumni
+`;
+const PUB_HEADER = `# Publications — edit here or via the widget (widget/index.html).
+# Mark the PI author with \`pi: true\` so their name renders in bold.
+`;
+
+function dumpTeam() {
+  return TEAM_HEADER + jsyaml.dump(state.team, { lineWidth: 120, noRefs: true });
+}
+function dumpPubs() {
+  return PUB_HEADER + jsyaml.dump(state.pubs, { lineWidth: 120, noRefs: true });
+}
+
+// ---------- Slug helper ----------
+// Produces short, URL-safe slugs from arbitrary strings. Caps at
+// `maxLen` characters and trims back to the nearest word boundary
+// so slugs read like "the-cunha-lab-opens" instead of running into
+// "the-cunha-lab-opens-at-loy". Used for both news .md filenames
+// and the photo paths derived from them \u2014 keeping the slug short
+// means asset filenames stay tidy.
+function slugify(s, maxLen = 25) {
+  const full = (s || 'item').toString().toLowerCase()
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  if (full.length <= maxLen) return full;
+  const trimmed = full.slice(0, maxLen);
+  const lastDash = trimmed.lastIndexOf('-');
+  // Only rewind to a dash if doing so still leaves a meaningful slug
+  // (\u2265 8 chars). Otherwise just take the hard cut.
+  return lastDash >= 8 ? trimmed.slice(0, lastDash) : trimmed;
+}
+
+// ============================================================
+// Square cropper (for news card image and gallery photos)
+// ============================================================
+// Pan-and-zoom cropper that always outputs a square JPG. Two modes:
+//   - "cover" (default): photo fills the square, edges may crop
+//   - "letterbox": entire photo is shown, gaps fill with white
+//                  (great for non-square photos you want intact)
+// The Team cropper is a separate class because it adds a circular
+// mask and tracks a separate state.
+class SquareCropper {
+  constructor({ wrap, stage, canvas, zoom, reset, letterbox }) {
+    this.wrap = wrap;
+    this.stage = stage;
+    this.canvas = canvas;
+    this.zoom = zoom;
+    this.reset = reset;
+    this.letterboxEl = letterbox;
+    this.ctx = canvas.getContext('2d');
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
+    this.letterbox = false;
+    this.img = null;
+    this.state = null;
+    this.dragStart = null;
+    this.outBuffer = null;       // last exported JPG, ArrayBuffer
+    this._setCanvasSize();
+    this._bind();
+  }
+  // Canvas output stays at 800×800 (plenty for retina thumbs); on-screen
+  // stage is 180px so multiple croppers (one per photo row, possibly
+  // a dozen on the fieldwork form) stay compact and stack comfortably.
+  _setCanvasSize() {
+    this.canvas.width = 800;
+    this.canvas.height = 800;
+    this.stage.style.width = '180px';
+    this.stage.style.height = '180px';
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
+  }
+  setLetterbox(on) {
+    this.letterbox = !!on;
+    if (this.letterboxEl) this.letterboxEl.checked = this.letterbox;
+    // Disable pan/zoom in letterbox mode — the whole image is visible
+    // by definition, so there's nothing meaningful to adjust.
+    if (this.zoom)  this.zoom.disabled  = this.letterbox;
+    if (this.reset) this.reset.disabled = this.letterbox;
+    if (this.img) this._initFor(this.img);
+  }
+  loadImage(image) {
+    this.img = image;
+    this.show();
+    this._initFor(image);
+  }
+  _initFor(image) {
+    const cw = this.canvas.width, ch = this.canvas.height;
+    // cover = largest scale that fully covers the square (crops edges)
+    // letterbox = smallest scale that fits the entire image (white bands)
+    const s = this.letterbox
+      ? Math.min(cw / image.naturalWidth, ch / image.naturalHeight)
+      : Math.max(cw / image.naturalWidth, ch / image.naturalHeight);
+    this.state = {
+      imgW: image.naturalWidth,
+      imgH: image.naturalHeight,
+      baseScale: s,
+      scale: s,
+      offX: (image.naturalWidth * s - cw) / 2,
+      offY: (image.naturalHeight * s - ch) / 2,
+    };
+    if (this.zoom) this.zoom.value = 1;
+    this._draw();
+    this._export();
+  }
+  _draw() {
+    if (!this.img || !this.state) return;
+    const cw = this.canvas.width, ch = this.canvas.height;
+    // Fill background: white in letterbox so the margins look clean,
+    // dark gray in cover so any wobble while dragging is obvious.
+    this.ctx.fillStyle = this.letterbox ? '#ffffff' : '#222';
+    this.ctx.fillRect(0, 0, cw, ch);
+    const w = this.state.imgW * this.state.scale;
+    const h = this.state.imgH * this.state.scale;
+    this.ctx.drawImage(this.img, -this.state.offX, -this.state.offY, w, h);
+  }
+  _clamp() {
+    const cw = this.canvas.width, ch = this.canvas.height;
+    const w = this.state.imgW * this.state.scale;
+    const h = this.state.imgH * this.state.scale;
+    if (this.letterbox) {
+      // Always center; whole image fits, so panning would just expose
+      // background (which makes no sense).
+      this.state.offX = (w - cw) / 2;
+      this.state.offY = (h - ch) / 2;
+    } else {
+      this.state.offX = Math.max(0, Math.min(this.state.offX, w - cw));
+      this.state.offY = Math.max(0, Math.min(this.state.offY, h - ch));
+    }
+  }
+  _export() {
+    // 0.95 keeps the output visually lossless for typical photographs
+    // without blowing up file size beyond ~200-500 KB.
+    this.canvas.toBlob((blob) => {
+      if (!blob) return;
+      blob.arrayBuffer().then(buf => { this.outBuffer = buf; });
+    }, 'image/jpeg', 0.95);
+  }
+  getBuffer() { return this.outBuffer; }
+  // Return a small object describing the current crop position so it
+  // can be saved to YAML and restored on next edit. Values are
+  // normalized so they survive different canvas sizes:
+  //   focalX, focalY → focal point in the source image (0-1 of width/height)
+  //   zoom           → multiple of baseScale (1 = fit-to-cover, 2 = doubled in)
+  //   letterbox      → boolean ("show entire photo" mode flag)
+  // Returns null when no image is loaded.
+  getCropState() {
+    if (!this.state) return null;
+    const { offX, offY, scale, baseScale, imgW, imgH } = this.state;
+    const cw = this.canvas.width, ch = this.canvas.height;
+    return {
+      focalX: (offX + cw / 2) / scale / imgW,
+      focalY: (offY + ch / 2) / scale / imgH,
+      zoom:   scale / baseScale,
+      letterbox: this.letterbox,
+    };
+  }
+  // Restore a crop state produced earlier by `getCropState()`. Must be
+  // called after `loadImage()` so we have valid state to mutate.
+  // Out-of-range values are clamped to keep the viewport inside the image.
+  setCropState(s) {
+    if (!s || !this.state) return;
+    // Letterbox-toggle is the only way zoom/focal point can be invalidated,
+    // so do it first via the normal setter (which re-runs `_initFor`).
+    if (s.letterbox !== this.letterbox) this.setLetterbox(!!s.letterbox);
+    if (this.letterbox) return;   // nothing to position; centered always
+    const baseScale = this.state.baseScale;
+    const zoom = Number.isFinite(s.zoom) && s.zoom > 0 ? s.zoom : 1;
+    this.state.scale = baseScale * zoom;
+    const cw = this.canvas.width, ch = this.canvas.height;
+    this.state.offX = (s.focalX ?? 0.5) * this.state.imgW * this.state.scale - cw / 2;
+    this.state.offY = (s.focalY ?? 0.5) * this.state.imgH * this.state.scale - ch / 2;
+    this._clamp();
+    if (this.zoom) this.zoom.value = zoom;
+    this._draw();
+    this._export();
+  }
+  show() { this.wrap.classList.add('is-active'); }
+  hide() { this.wrap.classList.remove('is-active'); }
+  clear() {
+    this.img = null;
+    this.state = null;
+    this.outBuffer = null;
+    this.letterbox = false;
+    if (this.letterboxEl) this.letterboxEl.checked = false;
+    if (this.zoom)  { this.zoom.disabled  = false; this.zoom.value = 1; }
+    if (this.reset) { this.reset.disabled = false; }
+    this.hide();
+  }
+  _bind() {
+    this.zoom.addEventListener('input', () => {
+      if (!this.state) return;
+      const cw = this.canvas.width, ch = this.canvas.height;
+      const mult = parseFloat(this.zoom.value);
+      const cxImg = (this.state.offX + cw / 2) / this.state.scale;
+      const cyImg = (this.state.offY + ch / 2) / this.state.scale;
+      this.state.scale = this.state.baseScale * mult;
+      this.state.offX = cxImg * this.state.scale - cw / 2;
+      this.state.offY = cyImg * this.state.scale - ch / 2;
+      this._clamp(); this._draw(); this._export();
+    });
+    this.reset.addEventListener('click', () => {
+      if (this.img) this._initFor(this.img);
+    });
+    this.stage.addEventListener('pointerdown', (e) => {
+      if (!this.state) return;
+      this.stage.setPointerCapture(e.pointerId);
+      this.stage.classList.add('dragging');
+      this.dragStart = { x: e.clientX, y: e.clientY,
+                         offX: this.state.offX, offY: this.state.offY };
+    });
+    this.stage.addEventListener('pointermove', (e) => {
+      if (!this.dragStart || !this.state) return;
+      const rect = this.stage.getBoundingClientRect();
+      const scaleCss = this.canvas.width / rect.width;
+      this.state.offX = this.dragStart.offX - (e.clientX - this.dragStart.x) * scaleCss;
+      this.state.offY = this.dragStart.offY - (e.clientY - this.dragStart.y) * scaleCss;
+      this._clamp(); this._draw();
+    });
+    this.stage.addEventListener('pointerup', () => {
+      if (this.dragStart) this._export();
+      this.dragStart = null;
+      this.stage.classList.remove('dragging');
+    });
+    this.stage.addEventListener('pointercancel', () => {
+      this.dragStart = null;
+      this.stage.classList.remove('dragging');
+    });
+  }
+}
+
+// ============================================================
+// NEWS
+// ============================================================
+document.getElementById('news-date').valueAsDate = new Date();
+
+// Remembers the image paths the edited post had when it was loaded
+// from disk. We carry them forward into the photo list so the save
+// handler can decide whether to overwrite or preserve. Declared up
+// here (rather than next to loadNewsIntoForm) so updateNewsPreview()
+// can read them at startup without hitting a TDZ error.
+let newsImageExisting = '';
+let newsImageFullExisting = '';
+
+// Detect HEIC/HEIF files on upload — browsers can't render them in
+// <img>, so saving one as a gallery photo or card image just produces
+// a broken thumbnail on the site. Reject with an actionable message.
+function rejectIfHeic(file) {
+  if (!file) return false;
+  const isHeic = file.type === 'image/heic' || file.type === 'image/heif' ||
+                 /\.(heic|heif)$/i.test(file.name);
+  if (!isHeic) return false;
+  toast(
+    "Browsers can't display HEIC photos. Open the file in Mac Preview, then File → Export → JPEG, and upload the .jpg. (Or set iPhone Settings → Camera → Formats → Most Compatible to save JPEGs by default.)",
+    true
+  );
+  return true;
+}
+
+// ---------- Photos (unified list: card image + extras) ----------
+// All photos for a post — including the one used as the card image —
+// live in this single list. Each row of the form is one item, with
+// its own SquareCropper. Exactly one item is marked `isCardImage`
+// (defaults to the first row at save time if the user doesn't tick
+// one explicitly).
+let newsGalleryItems = [];
+// Paths the post had on load — used to delete any photo the user
+// removed/replaced when the post is saved (no orphan files left over).
+let newsGalleryExistingPaths = [];
+
+// Toggle `isCardImage` to exactly one item (radio-button behavior).
+// Also updates each row's checkbox state so the UI stays in sync.
+function setCardImageItem(targetItem) {
+  newsGalleryItems.forEach(it => {
+    it.isCardImage = (it === targetItem);
+    if (it._cardCheckbox) it._cardCheckbox.checked = it.isCardImage;
+  });
+}
+
+// At save time, find the photo to use as the card image. Explicit
+// `isCardImage` flag wins; if no row is marked, fall back to the
+// first row that has a cropper buffer.
+function findCardImageItem() {
+  const explicit = newsGalleryItems.find(it => it.isCardImage);
+  if (explicit) return explicit;
+  return newsGalleryItems.find(it => it._cropper && it._cropper.getBuffer())
+      || newsGalleryItems.find(it => it.existingPath)
+      || null;
+}
+
+// Decode an uploaded file into an Image the cropper can use. Handles:
+//   - Regular images (JPG/PNG/etc.) → load directly into an Image.
+//   - PDFs → render the first page via pdf.js to a canvas, export as
+//     JPEG, and load that into an Image. Multi-page PDFs only use
+//     page 1; if you need a different page, extract it first
+//     (e.g. Mac Preview → save selected page as PDF/JPEG).
+async function fileToImage(file) {
+  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  if (isPdf) {
+    if (typeof pdfjsLib === 'undefined') {
+      toast('PDF support failed to load. Please convert the PDF to JPEG first.', true);
+      throw new Error('pdfjs missing');
+    }
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    const page = await pdf.getPage(1);
+    // Render at 4x scale (~288 DPI) so PDF-sourced figures stay sharp
+    // when a visitor opens them in the lightbox on an external monitor
+    // (27" 1440p or 4K display). At scale 2.0 the rasterized image was
+    // ~135 px per inch — fine for laptop screens, blurry once scaled
+    // up to 2400+ CSS pixels on a desktop. Memory cost is ~4x but
+    // still well under 100 MB even for a full-page figure.
+    const viewport = page.getViewport({ scale: 4.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width  = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    // White background — PDF pages can be transparent; we want them
+    // to render with a clean background instead of black.
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
+    const url = URL.createObjectURL(blob);
+    return await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+  // Regular image: load directly via objectURL.
+  const url = URL.createObjectURL(file);
+  return await new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+// Save a high-resolution version of the entire photo (uncropped) for
+// the lightbox to display when a visitor clicks through. Capped at
+// 2400px on the long edge — sharp on a 27" 1440p / 4K external
+// monitor (which is what visitors using a desktop in their office see).
+// On laptops the extra pixels just yield a touch crisper image; cost
+// is ~2x the file size of 1800px (typically 500-900 KB per JPG).
+function resizeToFullRes(img) {
+  return new Promise(resolve => {
+    const MAX_EDGE = 2400;
+    const scale = Math.min(1, MAX_EDGE / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth  * scale);
+    const h = Math.round(img.naturalHeight * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width  = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, w, h);
+    // Quality 0.92 keeps photo detail intact at ~300-700 KB per image.
+    canvas.toBlob(b => b.arrayBuffer().then(resolve), 'image/jpeg', 0.92);
+  });
+}
+
+// Build a single gallery row with its own interactive SquareCropper,
+// file picker, alt-text input, and Remove button. Event handlers close
+// over the `item` object (no index math), so adding or removing rows
+// can use targeted DOM mutations and existing rows keep their cropper
+// state (pan/zoom) intact.
+function createGalleryRow(item) {
+  const row = document.createElement('div');
+  row.className = 'gallery-row';
+
+  // Unique-ish prefix so the <label for> binding for the zoom slider
+  // doesn't collide across rows.
+  const uid = 'gr-' + Math.random().toString(36).slice(2, 8);
+
+  row.innerHTML = `
+    <div class="gallery-row__cropper">
+      <div class="cropper cropper--rect">
+        <div class="cropper__stage">
+          <canvas width="800" height="800"></canvas>
+        </div>
+        <div class="cropper__controls">
+          <label for="${uid}-zoom">Zoom</label>
+          <input type="range" id="${uid}-zoom" min="1" max="4" step="0.01" value="1">
+          <button type="button" class="btn ghost small" data-action="reset">Reset</button>
+          <label class="gallery-row__letterbox-label">
+            <input type="checkbox" data-action="letterbox">
+            Show entire photo
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="gallery-row__controls">
+      <label class="gallery-row__card-label">
+        <input type="checkbox" data-action="card-image" ${item.isCardImage ? 'checked' : ''}>
+        <span><b>Card image</b> <span class="hint">(thumbnail on the news index)</span></span>
+      </label>
+      <label class="gallery-row__file-label">
+        Photo
+        <input type="file" accept="image/*,application/pdf" data-action="file">
+      </label>
+      <label class="gallery-row__alt-label">
+        Caption <span class="hint">(shown below the photo on the post page)</span>
+        <input type="text" placeholder="Describe the photo" data-action="alt" value="${escapeAttr(item.caption || item.alt || '')}">
+      </label>
+      <button type="button" class="btn ghost small" data-action="remove">Remove photo</button>
+    </div>
+  `;
+
+  // Element refs scoped to this row
+  const cropperWrap = row.querySelector('.cropper');
+  const stageEl     = row.querySelector('.cropper__stage');
+  const canvasEl    = row.querySelector('canvas');
+  const zoomEl      = row.querySelector(`#${uid}-zoom`);
+  const resetBtn    = row.querySelector('[data-action="reset"]');
+  const letterboxCb = row.querySelector('[data-action="letterbox"]');
+  const fileInput   = row.querySelector('[data-action="file"]');
+  const altInput    = row.querySelector('[data-action="alt"]');
+  const removeBtn   = row.querySelector('[data-action="remove"]');
+  const cardCheckbox = row.querySelector('[data-action="card-image"]');
+  // Track the checkbox on the item so setCardImageItem() can sync UI.
+  item._cardCheckbox = cardCheckbox;
+
+  // Per-row SquareCropper. Same class the news card image uses, so the
+  // pan/zoom + letterbox feel is identical across all photos.
+  const cropper = new SquareCropper({
+    wrap:      cropperWrap,
+    stage:     stageEl,
+    canvas:    canvasEl,
+    zoom:      zoomEl,
+    reset:     resetBtn,
+    letterbox: letterboxCb,
+  });
+  item._cropper = cropper;
+  letterboxCb.checked = !!item.letterbox;
+
+  // Three initial states:
+  //   1. Item already has a decoded Image (from a previous upload in
+  //      this session): load it into the cropper.
+  //   2. Item is an existing photo loaded from disk for editing:
+  //      async-load the full-res file (if available, else the thumb)
+  //      and feed it to the cropper so the user can re-crop without
+  //      re-uploading.
+  //   3. Empty row: hide the cropper UI until a file is picked.
+  // Apply any saved crop position the user picked on a previous edit.
+  // For brand-new uploads (no saved state) the cropper falls back to
+  // its default fit-to-cover centered position.
+  function restoreCropState() {
+    if (item._savedCropState) {
+      // Also sync the letterbox checkbox state, since setCropState
+      // toggles cropper.letterbox internally if it differs.
+      item.letterbox = item._savedCropState.letterbox;
+      letterboxCb.checked = item.letterbox;
+      cropper.setCropState(item._savedCropState);
+    }
+  }
+
+  if (item._img) {
+    cropper.setLetterbox(!!item.letterbox);
+    cropper.loadImage(item._img);
+    restoreCropState();
+  } else if (item.existingPath && state.rootHandle) {
+    const sourcePath = (item.existingFullPath || item.existingPath).replace(/^\//, '');
+    readBinary(sourcePath).then(file => {
+      const url = URL.createObjectURL(file);
+      const im = new Image();
+      im.onload = () => {
+        URL.revokeObjectURL(url);
+        item._img = im;
+        item._fromUpload = false;       // loaded from disk, not new
+        cropper.setLetterbox(!!item.letterbox);
+        cropper.loadImage(im);
+        restoreCropState();
+      };
+      im.src = url;
+    }).catch(() => { /* file missing — leave cropper hidden */ });
+  } else {
+    cropper.hide();
+  }
+
+  fileInput.addEventListener('change', async () => {
+    const f = fileInput.files[0];
+    if (!f) return;
+    if (rejectIfHeic(f)) { fileInput.value = ''; return; }
+    // fileToImage handles regular images AND PDFs (renders page 1 via
+    // pdf.js). Either way the result is a decoded Image the cropper
+    // can pan / zoom / letterbox normally.
+    let im;
+    try {
+      im = await fileToImage(f);
+    } catch (e) {
+      toast("Couldn't read that file: " + (e.message || e), true);
+      fileInput.value = '';
+      return;
+    }
+    item._img = im;
+    item._fromUpload = true;
+    // For PDFs, force the saved filename to .jpg since we always
+    // export a JPEG version. Same logic the cropper applies on save.
+    item.name = /\.pdf$/i.test(f.name)
+      ? f.name.replace(/\.pdf$/i, '.jpg')
+      : f.name;
+    // Picking a new file invalidates any existing path references
+    // so the save handler treats this as a fresh photo.
+    item.existingPath = '';
+    item.existingFullPath = '';
+    cropper.setLetterbox(!!item.letterbox);
+    cropper.loadImage(im);
+    updateNewsPreview();
+  });
+
+  altInput.addEventListener('input', () => {
+    // One description per photo serves double duty: it's saved as both
+    // the visible `caption:` (figcaption under the image, lightbox
+    // caption) and the accessibility `alt:` attribute. They can be
+    // separated by editing YAML by hand if ever needed.
+    item.caption = altInput.value;
+    item.alt = altInput.value;
+    updateNewsPreview();
+  });
+
+  letterboxCb.addEventListener('change', () => {
+    item.letterbox = letterboxCb.checked;
+    cropper.setLetterbox(letterboxCb.checked);
+  });
+
+  removeBtn.addEventListener('click', () => {
+    const idx = newsGalleryItems.indexOf(item);
+    if (idx >= 0) newsGalleryItems.splice(idx, 1);
+    row.remove();
+    updateNewsPreview();
+  });
+
+  // Card-image radio behavior: ticking one box unticks all the others
+  // so exactly one item ends up marked. Un-ticking is allowed (in which
+  // case save-time falls back to the first photo).
+  cardCheckbox.addEventListener('change', () => {
+    if (cardCheckbox.checked) {
+      setCardImageItem(item);
+    } else {
+      item.isCardImage = false;
+    }
+    updateNewsPreview();
+  });
+
+  return row;
+}
+
+function renderNewsGallery() {
+  const box = document.getElementById('news-gallery');
+  box.innerHTML = '';
+  newsGalleryItems.forEach(item => {
+    box.appendChild(createGalleryRow(item));
+  });
+}
+
+document.getElementById('news-add-gallery').addEventListener('click', () => {
+  // Append a single row directly — no full re-render, so existing
+  // rows keep their cropper state (pan/zoom) untouched.
+  const item = { alt: '', letterbox: false };
+  newsGalleryItems.push(item);
+  document.getElementById('news-gallery').appendChild(createGalleryRow(item));
+  updateNewsPreview();
+});
+
+// Render once at startup so the (initially empty) container is ready.
+renderNewsGallery();
+
+// Tiny helper for safely embedding values in HTML attributes.
+function escapeAttr(s) {
+  return (s || '').toString()
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function updateNewsPreview() {
+  const title = document.getElementById('news-title').value.trim() || '<title>';
+  const date = document.getElementById('news-date').value || '<date>';
+  const excerpt = document.getElementById('news-excerpt').value.trim();
+  const body = document.getElementById('news-body').value;
+  const fm = { title, date };
+  if (excerpt) fm.excerpt = excerpt;
+  const baseName = (date && title) ? (date + '-' + slugify(title)) : 'POST';
+
+  // Split photos into the card image (one ticked, or first available)
+  // and the rest of the gallery. Same logic as the save handler so
+  // what the preview shows matches what gets written.
+  const cardItem = findCardImageItem();
+  const galleryItems = newsGalleryItems.filter(it => it !== cardItem);
+
+  // Helper: render one item's paths the way the save handler will.
+  // `n` is the sequential index used for gallery file names.
+  function previewPathsFor(item, n) {
+    const hasCrop = item._cropper && item._cropper.getBuffer();
+    const suffix = (n === 'card') ? '' : ('-' + n);
+    if (hasCrop) {
+      const paths = { path: `/assets/images/news/${baseName}${suffix}.jpg` };
+      if (item._fromUpload) {
+        paths.full = `/assets/images/news/${baseName}${suffix}-full.jpg`;
+      } else if (item.existingFullPath) {
+        paths.full = item.existingFullPath;
+      }
+      return paths;
+    }
+    if (item.existingPath) {
+      return { path: item.existingPath, full: item.existingFullPath || '' };
+    }
+    return { path: '<no photo selected>' };
+  }
+
+  if (cardItem) {
+    const p = previewPathsFor(cardItem, 'card');
+    fm.image = p.path;
+    if (p.full) fm.image_full = p.full;
+  } else if (newsImageExisting) {
+    fm.image = newsImageExisting;
+    if (newsImageFullExisting) fm.image_full = newsImageFullExisting;
+  }
+
+  if (galleryItems.length > 0) {
+    fm.gallery = galleryItems.map((item, i) => {
+      const p = previewPathsFor(item, i + 1);
+      const out = { path: p.path };
+      if (p.full) out.full = p.full;
+      // Single description per photo, written to both fields. `alt`
+      // covers accessibility; `caption` drives the visible figcaption.
+      const desc = item.caption || item.alt;
+      if (desc) { out.alt = desc; out.caption = desc; }
+      return out;
+    });
+  }
+  document.getElementById('news-preview').textContent = buildMdFile(fm, body);
+}
+['news-title','news-date','news-excerpt','news-body'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateNewsPreview);
+});
+updateNewsPreview();
+
+document.getElementById('news-save').addEventListener('click', async () => {
+  if (!state.rootHandle && hasFSA) { toast('Pick the project folder first.', true); return; }
+  const title = document.getElementById('news-title').value.trim();
+  const date = document.getElementById('news-date').value;
+  if (!title || !date) { toast('Title and date are required.', true); return; }
+
+  const excerpt = document.getElementById('news-excerpt').value.trim();
+  const body = document.getElementById('news-body').value;
+  const slug = slugify(title);
+  const baseName = `${date}-${slug}`;
+  const mdName = `${baseName}.md`;
+
+  const fm = { title, date };
+  if (excerpt) fm.excerpt = excerpt;
+
+  // ---------- Photos ----------
+  // All photos live in a single list. The one ticked as "card image"
+  // (or, if nothing is ticked, the first usable photo) gets written as
+  // the post hero / news-index thumbnail (`${baseName}.jpg` + `-full.jpg`
+  // for the lightbox). Everything else is written as gallery photos
+  // (`${baseName}-${N}.jpg` + `-full.jpg`), numbered 1..N in row order
+  // (excluding the card image).
+  //
+  // For each item: if the user uploaded a fresh file we write both the
+  // square thumb (from the cropper) AND a max-1800px full-res version
+  // (from the decoded Image). For items loaded from disk and only
+  // re-cropped, we re-write the thumb but preserve the existing full
+  // path (the lightbox image doesn't change when only the crop moves).
+  // After all writes, any previously-saved file no longer referenced
+  // is deleted to keep the assets folder tidy.
+
+  const cardItem      = findCardImageItem();
+  const galleryItems  = newsGalleryItems.filter(it => it !== cardItem);
+
+  // Helper that writes one photo and returns its path(s). `n` is
+  // 'card' for the card image, or a 1-based gallery index.
+  async function writePhoto(item, n) {
+    const thumbBuf = item._cropper ? item._cropper.getBuffer() : null;
+    let path = null;
+    let fullPath = null;
+    if (thumbBuf) {
+      const suffix = (n === 'card') ? '' : ('-' + n);
+      const thumbName = `${baseName}${suffix}.jpg`;
+      const fullName  = `${baseName}${suffix}-full.jpg`;
+      path = '/assets/images/news/' + thumbName;
+      if (state.rootHandle) {
+        await writeBinary('assets/images/news/' + thumbName, thumbBuf);
+      } else {
+        downloadFile(thumbName, new Blob([thumbBuf]));
+      }
+      if (item._fromUpload && item._img) {
+        fullPath = '/assets/images/news/' + fullName;
+        const fullBuf = await resizeToFullRes(item._img);
+        if (state.rootHandle) {
+          await writeBinary('assets/images/news/' + fullName, fullBuf);
+        } else {
+          downloadFile(fullName, new Blob([fullBuf]));
+        }
+      } else if (item.existingFullPath) {
+        fullPath = item.existingFullPath;
+      }
+    } else if (item.existingPath) {
+      path = item.existingPath;
+      if (item.existingFullPath) fullPath = item.existingFullPath;
+    }
+    return { path, fullPath };
+  }
+
+  // Helper: snapshot the current crop position so it can be restored
+  // on next edit. Skipped (returns null) when the cropper is at its
+  // default position (no panning/zoom, no letterbox) — keeps YAML clean.
+  function cropSnapshot(item) {
+    if (!item._cropper) return null;
+    const s = item._cropper.getCropState();
+    if (!s) return null;
+    const isDefault =
+      !s.letterbox &&
+      Math.abs(s.zoom - 1) < 0.001 &&
+      Math.abs(s.focalX - 0.5) < 0.001 &&
+      Math.abs(s.focalY - 0.5) < 0.001;
+    if (isDefault) return null;
+    // Round to 4 decimals so the YAML stays human-readable.
+    const r = n => Math.round(n * 10000) / 10000;
+    const out = { x: r(s.focalX), y: r(s.focalY), zoom: r(s.zoom) };
+    if (s.letterbox) out.letterbox = true;
+    return out;
+  }
+
+  // Card image
+  const finalCardPaths = [];   // [thumbPath, fullPath?] for the card image
+  if (cardItem) {
+    const { path, fullPath } = await writePhoto(cardItem, 'card');
+    if (path) {
+      fm.image = path;
+      finalCardPaths.push(path);
+    }
+    if (fullPath) {
+      fm.image_full = fullPath;
+      finalCardPaths.push(fullPath);
+    }
+    // Caption + alt (rendered as the visible figcaption when there's a
+    // gallery, and as the lightbox caption when the card image is
+    // clicked). Same shape as gallery items: write to BOTH fields.
+    const cardDesc = cardItem.caption || cardItem.alt;
+    if (cardDesc) {
+      fm.image_caption = cardDesc;
+      fm.image_alt = cardDesc;
+    }
+    const snap = cropSnapshot(cardItem);
+    if (snap) fm.image_crop = snap;
+  } else if (newsImageExisting) {
+    // No photos at all — preserve any existing card image references.
+    fm.image = newsImageExisting;
+    if (newsImageFullExisting) fm.image_full = newsImageFullExisting;
+    finalCardPaths.push(newsImageExisting);
+    if (newsImageFullExisting) finalCardPaths.push(newsImageFullExisting);
+  }
+
+  // Gallery
+  const finalGalleryPaths = [];
+  const finalGalleryFullPaths = [];
+  if (galleryItems.length > 0) {
+    const galleryFm = [];
+    for (let i = 0; i < galleryItems.length; i++) {
+      const { path, fullPath } = await writePhoto(galleryItems[i], i + 1);
+      if (!path) continue;
+      const entry = { path };
+      if (fullPath) entry.full = fullPath;
+      // Single description per photo, written to both `alt` (a11y) and
+      // `caption` (visible figcaption + lightbox caption).
+      const desc = galleryItems[i].caption || galleryItems[i].alt;
+      if (desc) { entry.alt = desc; entry.caption = desc; }
+      const snap = cropSnapshot(galleryItems[i]);
+      if (snap) entry.crop = snap;
+      galleryFm.push(entry);
+      finalGalleryPaths.push(path);
+      if (fullPath) finalGalleryFullPaths.push(fullPath);
+    }
+    if (galleryFm.length > 0) fm.gallery = galleryFm;
+  }
+
+  // Clean up any old files that aren't in the new set — covers both
+  // the card image's previous paths and any orphaned gallery paths.
+  if (state.rootHandle) {
+    const keep = new Set([
+      ...finalCardPaths,
+      ...finalGalleryPaths,
+      ...finalGalleryFullPaths,
+    ]);
+    const oldPaths = [
+      newsImageExisting,
+      newsImageFullExisting,
+      ...newsGalleryExistingPaths,
+    ].filter(Boolean);
+    for (const oldPath of oldPaths) {
+      if (!keep.has(oldPath)) {
+        try { await deleteFile(oldPath.replace(/^\//, '')); }
+        catch (e) { /* already gone — fine */ }
+      }
+    }
+  }
+
+  const content = buildMdFile(fm, body);
+  const editFile = document.getElementById('news-edit-file').value;
+
+  if (state.rootHandle) {
+    // If editing under a different name, delete the old file first
+    if (editFile && editFile !== mdName) {
+      try { await deleteFile('_news/' + editFile); } catch (e) { /* ignore */ }
+    }
+    await writeFile('_news/' + mdName, content);
+    toast('Saved: _news/' + mdName);
+    await loadNews();
+    renderNewsExisting();
+  } else {
+    downloadFile(mdName, content, 'text/markdown');
+    toast('Downloaded ' + mdName + ' — drop it in _news/');
+  }
+  resetNewsForm();
+});
+
+document.getElementById('news-reset').addEventListener('click', resetNewsForm);
+
+function resetNewsForm() {
+  document.getElementById('news-form').reset();
+  document.getElementById('news-date').valueAsDate = new Date();
+  document.getElementById('news-edit-file').value = '';
+  newsImageExisting = '';
+  newsImageFullExisting = '';
+  newsGalleryItems = [];
+  newsGalleryExistingPaths = [];
+  renderNewsGallery();
+  updateNewsPreview();
+}
+
+function renderNewsExisting() {
+  const box = document.getElementById('news-existing');
+  if (state.news.length === 0) { box.innerHTML = ''; return; }
+
+  // ----- Group news by year (desc), each group a <details>, collapsed -----
+  // state.news is already sorted newest-first by loadNews(). We preserve
+  // the original index (`origIdx`) on each item so edit/delete handlers
+  // still hit state.news[i] correctly.
+  const groups = new Map();
+  state.news.forEach((n, origIdx) => {
+    const d = (n.fm.date || '').toString();
+    const y = /^(\d{4})/.test(d) ? d.slice(0, 4) : 'Undated';
+    if (!groups.has(y)) groups.set(y, []);
+    groups.get(y).push({ n, origIdx });
+  });
+
+  const years = Array.from(groups.keys()).sort((a, b) => {
+    if (a === 'Undated') return 1;
+    if (b === 'Undated') return -1;
+    return parseInt(b) - parseInt(a);
+  });
+
+  // Open the current year by default; older years stay collapsed.
+  const currentYear = String(new Date().getFullYear());
+
+  const sections = years.map(y => {
+    const list = groups.get(y).map(({ n, origIdx }) => `
+      <div class="existing-item">
+        <div>
+          <div><b>${escapeHtml(n.fm.title || n.filename)}</b></div>
+          <div class="meta">${escapeHtml((n.fm.date || '').toString().slice(0,10))}</div>
+        </div>
+        <div class="actions-inline">
+          <button class="btn ghost small" data-news-edit="${origIdx}">Edit</button>
+          <button class="btn ghost small" data-news-del="${origIdx}">Delete</button>
+        </div>
+      </div>
+    `).join('');
+    const isOpen = y === currentYear ? 'open' : '';
+    return `
+      <details class="news-group" ${isOpen}>
+        <summary>${escapeHtml(y)} <span class="count">(${groups.get(y).length})</span></summary>
+        ${list}
+      </details>
+    `;
+  }).join('');
+
+  box.innerHTML = `
+    <div class="existing">
+      <h3>Existing news (${state.news.length})</h3>
+      ${sections}
+    </div>
+  `;
+
+  box.querySelectorAll('[data-news-edit]').forEach(b => {
+    b.addEventListener('click', () => loadNewsIntoForm(parseInt(b.dataset.newsEdit)));
+  });
+  box.querySelectorAll('[data-news-del]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const n = state.news[parseInt(b.dataset.newsDel)];
+      if (!confirm('Delete "' + (n.fm.title || n.filename) + '"?')) return;
+      await deleteFile('_news/' + n.filename);
+      // Remove every associated image so nothing orphans — thumbs and
+      // full-res versions, for both the card image and gallery photos.
+      const photosToDelete = [
+        n.fm.image,
+        n.fm.image_full,
+        ...((n.fm.gallery || []).flatMap(p => [p && p.path, p && p.full])),
+      ].filter(Boolean);
+      for (const path of photosToDelete) {
+        try { await deleteFile(path.replace(/^\//, '')); }
+        catch (e) { /* already gone — ignore */ }
+      }
+      await loadNews();
+      renderNewsExisting();
+      toast('Deleted ' + n.filename);
+    });
+  });
+}
+
+async function loadNewsIntoForm(i) {
+  const n = state.news[i];
+  document.getElementById('news-title').value = n.fm.title || '';
+  document.getElementById('news-date').value = (n.fm.date || '').toString().slice(0,10);
+  document.getElementById('news-excerpt').value = n.fm.excerpt || '';
+  document.getElementById('news-body').value = n.body || '';
+  document.getElementById('news-edit-file').value = n.filename;
+  newsImageExisting = n.fm.image || '';
+  newsImageFullExisting = n.fm.image_full || '';
+
+  // Flatten the post's photos into a single list: the card image
+  // becomes the first row (ticked as card), then the gallery items
+  // follow. Each row's cropper async-loads its file off disk in
+  // createGalleryRow so the user can re-crop without re-uploading.
+  // Helper: parse a YAML `crop` block into the shape SquareCropper
+  // expects. Returns null if missing/invalid, in which case the cropper
+  // will fall back to its default centered, fit-to-cover state.
+  function readCrop(c) {
+    if (!c || typeof c !== 'object') return null;
+    return {
+      focalX:    typeof c.x === 'number'    ? c.x    : 0.5,
+      focalY:    typeof c.y === 'number'    ? c.y    : 0.5,
+      zoom:      typeof c.zoom === 'number' ? c.zoom : 1,
+      letterbox: !!c.letterbox,
+    };
+  }
+
+  newsGalleryItems = [];
+  if (newsImageExisting) {
+    newsGalleryItems.push({
+      isCardImage: true,
+      existingPath: newsImageExisting,
+      existingFullPath: newsImageFullExisting,
+      // Prefer caption over alt — same precedence as gallery items.
+      caption: n.fm.image_caption || n.fm.image_alt || '',
+      alt:     n.fm.image_alt     || n.fm.image_caption || '',
+      _savedCropState: readCrop(n.fm.image_crop),
+    });
+  }
+  const existingGallery = Array.isArray(n.fm.gallery) ? n.fm.gallery : [];
+  existingGallery.forEach(g => {
+    newsGalleryItems.push({
+      isCardImage: false,
+      existingPath: g.path,
+      existingFullPath: g.full || '',
+      // Prefer caption (visible) over alt (a11y) when populating the
+      // editable field. The save handler writes back to both, so
+      // either field carries forward across edits.
+      caption: g.caption || g.alt || '',
+      alt: g.alt || g.caption || '',
+      _savedCropState: readCrop(g.crop),
+    });
+  });
+  // Track every existing path (card + gallery, thumb + full) so the
+  // save-time orphan cleanup catches any of them that the user removes
+  // or replaces.
+  newsGalleryExistingPaths = [
+    newsImageExisting,
+    newsImageFullExisting,
+    ...existingGallery.flatMap(g => [g.path, g.full].filter(Boolean)),
+  ].filter(Boolean);
+
+  renderNewsGallery();
+  updateNewsPreview();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================
+// TEAM
+// ============================================================
+function renderTeamLinks(links=[]) {
+  const box = document.getElementById('team-links');
+  box.innerHTML = '';
+  links.forEach((l, i) => addTeamLinkRow(l.label, l.url));
+  if (links.length === 0) addTeamLinkRow('Email', '');
+}
+function addTeamLinkRow(label='', url='') {
+  const row = document.createElement('div');
+  row.className = 'link-row';
+  row.innerHTML = `
+    <input type="text" placeholder="Label (e.g. Email)" value="${escapeAttr(label)}">
+    <input type="text" placeholder="URL or mailto:..." value="${escapeAttr(url)}">
+    <button type="button" class="remove-btn" title="Remove">&times;</button>
+  `;
+  row.querySelector('.remove-btn').addEventListener('click', () => row.remove());
+  document.getElementById('team-links').appendChild(row);
+}
+document.getElementById('team-add-link').addEventListener('click', () => addTeamLinkRow());
+
+// ---------------- photo cropper ----------------
+// `teamPhotoData` holds the FINAL square JPG (re-exported from the cropper
+// canvas every time the user drags/zooms). The site only sees this cropped
+// version, so uploads stay small and team cards are always nicely framed.
+const teamPhotoInput = document.getElementById('team-photo');
+let teamPhotoData = null;
+
+const cropEl = {
+  wrap:    document.getElementById('team-cropper'),
+  stage:   document.getElementById('crop-stage'),
+  canvas:  document.getElementById('crop-canvas'),
+  zoom:    document.getElementById('crop-zoom'),
+  reset:   document.getElementById('crop-reset'),
+};
+const cropCtx = cropEl.canvas.getContext('2d');
+const CROP_SIZE = cropEl.canvas.width;  // square output, 560px
+
+let cropImg = null;      // Image object, loaded from file
+let cropState = null;    // { baseScale, scale, offX, offY, imgW, imgH }
+
+function showCropper() { cropEl.wrap.classList.add('is-active'); }
+function hideCropper() { cropEl.wrap.classList.remove('is-active'); }
+
+function initCropFor(image) {
+  cropImg = image;
+  const s = Math.max(CROP_SIZE / image.naturalWidth, CROP_SIZE / image.naturalHeight);
+  cropState = {
+    imgW: image.naturalWidth,
+    imgH: image.naturalHeight,
+    baseScale: s,   // the "fit to cover" baseline zoom
+    scale: s,
+    offX: (image.naturalWidth * s - CROP_SIZE) / 2,
+    offY: (image.naturalHeight * s - CROP_SIZE) / 2,
+  };
+  cropEl.zoom.value = 1;
+  drawCrop();
+  exportCrop();
+}
+
+function drawCrop() {
+  if (!cropImg || !cropState) return;
+  cropCtx.fillStyle = '#222';
+  cropCtx.fillRect(0, 0, CROP_SIZE, CROP_SIZE);
+  const w = cropState.imgW * cropState.scale;
+  const h = cropState.imgH * cropState.scale;
+  cropCtx.drawImage(cropImg, -cropState.offX, -cropState.offY, w, h);
+}
+
+function clampOffsets() {
+  const w = cropState.imgW * cropState.scale;
+  const h = cropState.imgH * cropState.scale;
+  cropState.offX = Math.max(0, Math.min(cropState.offX, w - CROP_SIZE));
+  cropState.offY = Math.max(0, Math.min(cropState.offY, h - CROP_SIZE));
+}
+
+// Export the current viewport as a square JPG blob
+function exportCrop() {
+  cropEl.canvas.toBlob((blob) => {
+    if (!blob) return;
+    blob.arrayBuffer().then(buf => {
+      teamPhotoData = { name: 'photo.jpg', buffer: buf, ext: 'jpg' };
+    });
+  }, 'image/jpeg', 0.9);
+}
+
+// --- interactions ---
+cropEl.zoom.addEventListener('input', () => {
+  if (!cropState) return;
+  // slider 1..4 maps to 1x..4x of the base cover-fit scale
+  const mult = parseFloat(cropEl.zoom.value);
+  // Keep the center of the viewport anchored while zooming
+  const cxImg = (cropState.offX + CROP_SIZE / 2) / cropState.scale;
+  const cyImg = (cropState.offY + CROP_SIZE / 2) / cropState.scale;
+  cropState.scale = cropState.baseScale * mult;
+  cropState.offX = cxImg * cropState.scale - CROP_SIZE / 2;
+  cropState.offY = cyImg * cropState.scale - CROP_SIZE / 2;
+  clampOffsets();
+  drawCrop();
+  exportCrop();
+});
+
+cropEl.reset.addEventListener('click', () => {
+  if (!cropImg) return;
+  initCropFor(cropImg);
+});
+
+// Drag to pan
+let dragStart = null;
+cropEl.stage.addEventListener('pointerdown', (e) => {
+  if (!cropState) return;
+  cropEl.stage.setPointerCapture(e.pointerId);
+  cropEl.stage.classList.add('dragging');
+  dragStart = { x: e.clientX, y: e.clientY, offX: cropState.offX, offY: cropState.offY };
+});
+cropEl.stage.addEventListener('pointermove', (e) => {
+  if (!dragStart || !cropState) return;
+  const rect = cropEl.stage.getBoundingClientRect();
+  const scaleCss = CROP_SIZE / rect.width;  // canvas px per CSS px
+  cropState.offX = dragStart.offX - (e.clientX - dragStart.x) * scaleCss;
+  cropState.offY = dragStart.offY - (e.clientY - dragStart.y) * scaleCss;
+  clampOffsets();
+  drawCrop();
+});
+cropEl.stage.addEventListener('pointerup', (e) => {
+  if (dragStart) { exportCrop(); }
+  dragStart = null;
+  cropEl.stage.classList.remove('dragging');
+});
+cropEl.stage.addEventListener('pointercancel', () => {
+  dragStart = null;
+  cropEl.stage.classList.remove('dragging');
+});
+
+// Load a freshly-picked file into the cropper
+teamPhotoInput.addEventListener('change', () => {
+  const f = teamPhotoInput.files[0];
+  const prev = document.getElementById('team-photo-preview');
+  prev.innerHTML = '';
+  prev.style.display = 'none';
+  if (!f) {
+    teamPhotoData = null;
+    hideCropper();
+    return;
+  }
+  if (rejectIfHeic(f)) { teamPhotoInput.value = ''; hideCropper(); return; }
+  // No "Source: filename" line — the browser already shows the chosen
+  // filename next to the Choose File button. The cropper below shows
+  // the actual image preview. Keeping this block empty avoids
+  // duplicating info already on screen.
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    showCropper();
+    initCropFor(img);
+  };
+  img.src = url;
+});
+
+document.getElementById('team-save').addEventListener('click', async () => {
+  if (!state.rootHandle && hasFSA) { toast('Pick the project folder first.', true); return; }
+  const name = document.getElementById('team-name').value.trim();
+  const role = document.getElementById('team-role').value.trim();
+  if (!name || !role) { toast('Name and role are required.', true); return; }
+
+  const roleGroup = document.getElementById('team-role-group').value;
+  const bio = document.getElementById('team-bio').value.trim();
+  const longBio = document.getElementById('team-long-bio').value.trim();
+  const links = [...document.querySelectorAll('#team-links .link-row')].map(r => {
+    const [a, b] = r.querySelectorAll('input');
+    return { label: a.value.trim(), url: b.value.trim() };
+  }).filter(l => l.label && l.url);
+
+  const entry = { name, role, role_group: roleGroup };
+  if (bio) entry.bio = bio;
+  if (longBio) entry.long_bio = longBio;
+  entry.photo = '';   // filled in below if a photo was uploaded
+
+  // What photo does this entry have BEFORE our changes? We use this
+  // to clean up orphaned files when (a) the member is renamed (photo
+  // filename derives from the slug of the name, so a rename produces
+  // a new filename), or (b) a new photo is uploaded to replace an
+  // existing one.
+  const editIdx = document.getElementById('team-edit-index').value;
+  const previousPhoto = (editIdx !== '' && state.team[parseInt(editIdx)])
+    ? (state.team[parseInt(editIdx)].photo || '')
+    : '';
+
+  // Handle photo — cropper always exports a square JPG
+  if (teamPhotoData) {
+    const safeName = slugify(name) + '.' + (teamPhotoData.ext || 'jpg');
+    entry.photo = '/assets/images/team/' + safeName;
+    if (state.rootHandle) {
+      await writeBinary('assets/images/team/' + safeName, teamPhotoData.buffer);
+      // Uploaded a new photo — if the previous file was different,
+      // drop it so we don't accumulate orphans.
+      if (previousPhoto && previousPhoto !== entry.photo) {
+        try { await deleteFile(previousPhoto.replace(/^\//, '')); }
+        catch (e) { /* already gone */ }
+      }
+    } else {
+      downloadFile(safeName, new Blob([teamPhotoData.buffer]));
+    }
+  } else {
+    delete entry.photo; // don't write an empty photo field
+  }
+  if (links.length > 0) entry.links = links;
+
+  if (editIdx !== '') {
+    const i = parseInt(editIdx);
+    // No new upload: carry the old photo path forward. But if the
+    // member was renamed, the file on disk still has the old
+    // filename — rename it on disk so it matches the new slug.
+    if (!teamPhotoData && previousPhoto) {
+      const desiredName = slugify(name) + '.' + (previousPhoto.split('.').pop() || 'jpg');
+      const desiredPath = '/assets/images/team/' + desiredName;
+      if (previousPhoto !== desiredPath && state.rootHandle) {
+        // "Rename" by copying then deleting the old file.
+        try {
+          const srcDir = await getDir('assets/images/team');
+          const srcHandle = await srcDir.getFileHandle(previousPhoto.split('/').pop());
+          const file = await srcHandle.getFile();
+          const buf = await file.arrayBuffer();
+          await writeBinary('assets/images/team/' + desiredName, buf);
+          await deleteFile(previousPhoto.replace(/^\//, ''));
+          entry.photo = desiredPath;
+        } catch (e) {
+          // If anything fails, keep the old reference — better than
+          // leaving the entry photo-less.
+          entry.photo = previousPhoto;
+        }
+      } else {
+        entry.photo = previousPhoto;
+      }
+    }
+    state.team[i] = entry;
+  } else {
+    state.team.push(entry);
+  }
+
+  const content = dumpTeam();
+  if (state.rootHandle) {
+    await writeFile('_data/team.yml', content);
+    toast(editIdx !== '' ? 'Updated ' + name : 'Added ' + name);
+  } else {
+    downloadFile('team.yml', content, 'text/yaml');
+    toast('Downloaded team.yml — replace the one in _data/');
+  }
+  await loadTeam();
+  renderTeamExisting();
+  resetTeamForm();
+});
+
+document.getElementById('team-reset').addEventListener('click', resetTeamForm);
+
+function resetTeamForm() {
+  document.getElementById('team-form').reset();
+  document.getElementById('team-edit-index').value = '';
+  document.getElementById('team-form-heading').textContent = 'Add a new member';
+  document.getElementById('team-photo-preview').style.display = 'none';
+  teamPhotoData = null;
+  cropImg = null;
+  cropState = null;
+  hideCropper();
+  renderTeamLinks([]);
+}
+
+// Role group order + labels for the widget's existing-list. Mirrors the
+// Team page (team.html). "alumni" is last and starts collapsed.
+const TEAM_GROUPS = [
+  { id: 'pi',        label: 'Principal Investigator'    },
+  { id: 'postdoc',   label: 'Postdoctoral Researchers'  },
+  { id: 'grad',      label: 'Graduate Students'         },
+  { id: 'undergrad', label: 'Undergraduate Students'    },
+  { id: 'visiting',  label: 'Visiting Scholars'         },
+  { id: 'staff',     label: 'Lab Staff'                 },
+  { id: 'alumni',    label: 'Lab Alumni',    collapsed: true },
+];
+
+// Move a member up or down among peers in the SAME role_group, then
+// reflect the new order in the flat state.team array, save, re-render.
+async function moveTeamMember(globalIdx, direction) {
+  const m = state.team[globalIdx];
+  if (!m) return;
+  // peers = other members in the same role_group, in file order
+  const peers = state.team
+    .map((x, i) => ({ x, i }))
+    .filter(({ x }) => x.role_group === m.role_group);
+  const pos = peers.findIndex(p => p.i === globalIdx);
+  const targetPos = pos + direction;
+  if (targetPos < 0 || targetPos >= peers.length) return;       // edge
+  const swapWithIdx = peers[targetPos].i;
+  [state.team[globalIdx], state.team[swapWithIdx]] =
+    [state.team[swapWithIdx], state.team[globalIdx]];
+  await writeFile('_data/team.yml', dumpTeam());
+  renderTeamExisting();
+}
+
+function renderTeamExisting() {
+  const box = document.getElementById('team-existing');
+  if (state.team.length === 0) { box.innerHTML = ''; return; }
+
+  // Pair each member with its original index so reorder/edit still
+  // works against the flat state.team array.
+  const withIdx = state.team.map((m, i) => ({ m, i }));
+
+  const groupSections = TEAM_GROUPS.map(g => {
+    const members = withIdx.filter(({ m }) => m.role_group === g.id);
+    if (members.length === 0) return '';
+    const rows = members.map(({ m, i }, localIdx) => `
+      <div class="existing-item">
+        <div class="reorder">
+          <button class="reorder-btn" data-team-up="${i}" title="Move up" ${localIdx === 0 ? 'disabled' : ''}>▲</button>
+          <button class="reorder-btn" data-team-down="${i}" title="Move down" ${localIdx === members.length - 1 ? 'disabled' : ''}>▼</button>
+        </div>
+        <div>
+          <div><b>${escapeHtml(m.name)}</b></div>
+          <div class="meta">${escapeHtml(m.role || '')}</div>
+        </div>
+        <div class="actions-inline">
+          <button class="btn ghost small" data-team-edit="${i}">Edit</button>
+          <button class="btn ghost small" data-team-del="${i}">Delete</button>
+        </div>
+      </div>
+    `).join('');
+    const open = g.collapsed ? '' : 'open';
+    return `
+      <details class="team-group" ${open}>
+        <summary><b>${escapeHtml(g.label)}</b> <span class="count">(${members.length})</span></summary>
+        ${rows}
+      </details>`;
+  }).join('');
+
+  box.innerHTML = `
+    <div class="existing">
+      <h3>Current team (${state.team.length})</h3>
+      <p class="helper" style="margin-top:-0.25rem;margin-bottom:1rem;">
+        Click a group to expand. Use ▲▼ to reorder within a group.
+      </p>
+      ${groupSections}
+    </div>`;
+
+  box.querySelectorAll('[data-team-edit]').forEach(b => {
+    b.addEventListener('click', () => loadTeamIntoForm(parseInt(b.dataset.teamEdit)));
+  });
+  box.querySelectorAll('[data-team-del]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const m = state.team[parseInt(b.dataset.teamDel)];
+      if (!confirm('Remove ' + m.name + ' from the team? Their photo file will also be deleted.')) return;
+      state.team.splice(parseInt(b.dataset.teamDel), 1);
+      await writeFile('_data/team.yml', dumpTeam());
+      // Delete the photo asset too so we don't leave orphans behind.
+      if (m.photo) {
+        try { await deleteFile(m.photo.replace(/^\//, '')); }
+        catch (e) { /* already gone — ignore */ }
+      }
+      await loadTeam();
+      renderTeamExisting();
+      toast('Removed ' + m.name);
+    });
+  });
+  box.querySelectorAll('[data-team-up]').forEach(b => {
+    b.addEventListener('click', () => moveTeamMember(parseInt(b.dataset.teamUp), -1));
+  });
+  box.querySelectorAll('[data-team-down]').forEach(b => {
+    b.addEventListener('click', () => moveTeamMember(parseInt(b.dataset.teamDown), +1));
+  });
+}
+
+async function loadTeamIntoForm(i) {
+  const m = state.team[i];
+  document.getElementById('team-name').value = m.name || '';
+  document.getElementById('team-role').value = m.role || '';
+  document.getElementById('team-role-group').value = m.role_group || 'grad';
+  document.getElementById('team-bio').value = m.bio || '';
+  document.getElementById('team-long-bio').value = m.long_bio || '';
+  document.getElementById('team-edit-index').value = i;
+  document.getElementById('team-form-heading').textContent = 'Edit: ' + m.name;
+  renderTeamLinks(m.links || []);
+  teamPhotoData = null;
+  cropImg = null;
+  cropState = null;
+  hideCropper();
+  const prev = document.getElementById('team-photo-preview');
+  prev.innerHTML = '';
+  prev.style.display = 'none';
+
+  // Load the saved photo into the cropper so the user can:
+  //   - see what's already there
+  //   - re-zoom / re-pan to tweak the crop without re-uploading
+  //   - or pick a new file to start from a fresh image
+  // Note: the cropper sees the SAVED (already-cropped) JPG, not the
+  // original file. So re-cropping can only zoom/pan within the existing
+  // crop — to recover area outside it, upload the original again.
+  if (m.photo && state.rootHandle) {
+    try {
+      const file = await readBinary(m.photo.replace(/^\//, ''));
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        showCropper();
+        initCropFor(img);
+      };
+      img.src = url;
+      prev.innerHTML = `<span class="muted">Current photo loaded — drag/zoom to re-crop, or pick a new file to replace.</span>`;
+      prev.style.display = 'flex';
+    } catch (e) {
+      prev.innerHTML = `<span class="muted">Couldn't load current photo (${escapeHtml(m.photo)}). Upload a new file to replace.</span>`;
+      prev.style.display = 'flex';
+    }
+  } else if (m.photo) {
+    // No FSA access (e.g. opened from a different folder) — fall back
+    // to the old text hint.
+    prev.innerHTML = `<span class="muted">Current photo: ${escapeHtml(m.photo)} (upload a new file to replace)</span>`;
+    prev.style.display = 'flex';
+  }
+  document.querySelector('[data-panel="team"]').click();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Initialize team with one empty link row
+renderTeamLinks([]);
+
+// ============================================================
+// PUBLICATIONS
+// ============================================================
+
+// Cover image handling — mirrors the News image pattern. The file
+// buffer is held in memory and only written on Save. `existingCover`
+// remembers the previously saved path when editing, so we keep the
+// reference if the user doesn't upload a replacement.
+const pubCoverInput = document.getElementById('pub-cover');
+let pubCoverData = null;          // new upload { name, buffer }
+let pubCoverExisting = '';        // path from YAML when editing
+pubCoverInput.addEventListener('change', () => {
+  const f = pubCoverInput.files[0];
+  const prev = document.getElementById('pub-cover-preview');
+  prev.innerHTML = '';
+  if (!f) { pubCoverData = null; prev.style.display = 'none'; return; }
+  if (rejectIfHeic(f)) { pubCoverInput.value = ''; pubCoverData = null; prev.style.display = 'none'; return; }
+  const url = URL.createObjectURL(f);
+  prev.innerHTML = `<img src="${url}" alt=""><span>${escapeHtml(f.name)}</span>`;
+  prev.style.display = 'flex';
+  f.arrayBuffer().then(buf => { pubCoverData = { name: f.name, buffer: buf }; });
+});
+
+function addPubAuthorRow(name='', pi=false) {
+  const row = document.createElement('div');
+  row.className = 'link-row author';
+  row.innerHTML = `
+    <input type="text" placeholder="Author name (e.g., Cunha TJ)" value="${escapeAttr(name)}">
+    <label style="display:flex; align-items:center; gap:.3rem; font-weight:400; font-size:.85rem; color:var(--muted);">
+      <input type="checkbox" ${pi ? 'checked' : ''}> PI
+    </label>
+    <button type="button" class="remove-btn" title="Remove">&times;</button>
+  `;
+  row.querySelector('.remove-btn').addEventListener('click', () => row.remove());
+  document.getElementById('pub-authors').appendChild(row);
+}
+document.getElementById('pub-add-author').addEventListener('click', () => addPubAuthorRow());
+
+function renderPubAuthors(authors=[]) {
+  document.getElementById('pub-authors').innerHTML = '';
+  authors.forEach(a => addPubAuthorRow(a.name, a.pi));
+  if (authors.length === 0) addPubAuthorRow('Cunha, T. J.', true);
+}
+renderPubAuthors([]);
+
+// ---------- Media coverage rows ----------
+// Each row collects { name, url } for a single outlet. The same row
+// shape as authors-list so the visual rhythm matches.
+function addPubMediaRow(name='', url='') {
+  const row = document.createElement('div');
+  row.className = 'link-row media';
+  row.innerHTML = `
+    <input type="text" placeholder="Outlet (e.g., CNN)" value="${escapeAttr(name)}" style="flex:0 0 9rem;">
+    <input type="url"  placeholder="https://…"          value="${escapeAttr(url)}"  style="flex:1;">
+    <button type="button" class="remove-btn" title="Remove">&times;</button>
+  `;
+  row.querySelector('.remove-btn').addEventListener('click', () => row.remove());
+  document.getElementById('pub-media-list').appendChild(row);
+}
+document.getElementById('pub-add-media').addEventListener('click', () => addPubMediaRow());
+
+function renderPubMedia(media=[]) {
+  document.getElementById('pub-media-list').innerHTML = '';
+  media.forEach(m => addPubMediaRow(m.name, m.url));
+}
+
+// Crossref DOI lookup
+document.getElementById('pub-fetch').addEventListener('click', async () => {
+  const raw = document.getElementById('pub-doi').value.trim();
+  const doi = raw.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '').trim();
+  if (!doi) { toast('Paste a DOI first.', true); return; }
+  const status = document.getElementById('pub-fetch-status');
+  status.textContent = 'Fetching…';
+  try {
+    const r = await fetch('https://api.crossref.org/works/' + encodeURIComponent(doi), {
+      headers: { 'User-Agent': 'CunhaLab-Widget/1.0 (mailto:' + 'tauanacunhalab@gmail.com' + ')' }
+    });
+    if (!r.ok) throw new Error('Crossref says ' + r.status);
+    const data = (await r.json()).message;
+    document.getElementById('pub-doi').value = doi;
+    document.getElementById('pub-title').value = (data.title || [''])[0];
+    document.getElementById('pub-venue').value = (data['container-title'] || [''])[0];
+    const yr = (data.issued && data.issued['date-parts'] && data.issued['date-parts'][0][0])
+            || (data['published-print'] && data['published-print']['date-parts'][0][0])
+            || (data['published-online'] && data['published-online']['date-parts'][0][0]);
+    if (yr) document.getElementById('pub-year').value = yr;
+    document.getElementById('pub-url').value = data.URL || ('https://doi.org/' + doi);
+    // Format authors as "Family II" (e.g. "Cunha TJ", "de Medeiros BAS")
+    // — last name + run of initials with no dots and no comma. Commas
+    // only appear between authors, never inside a single name. This
+    // matches the style of the entries imported from the old site.
+    const authors = (data.author || []).map(a => {
+      const family = (a.family || '').trim();
+      const given = (a.given || '').trim();
+      // Split given names on whitespace, hyphens, and dots (so already-
+      // initialed inputs like "T. J." still yield "TJ"). First letter
+      // of each part, uppercased, joined with no separator.
+      const initials = given
+        ? given.split(/[\s.\-]+/).filter(Boolean).map(n => n[0].toUpperCase()).join('')
+        : '';
+      const formatted = family + (initials ? ' ' + initials : '');
+      const isPI = /cunha/i.test(family) && /^(T|Tauana)/i.test(given);
+      return { name: formatted, pi: isPI };
+    });
+    renderPubAuthors(authors);
+    status.textContent = 'Fetched. Review fields and click Save.';
+  } catch (e) {
+    status.textContent = 'Lookup failed: ' + e.message;
+    toast('DOI lookup failed.', true);
+  }
+});
+
+document.getElementById('pub-save').addEventListener('click', async () => {
+  if (!state.rootHandle && hasFSA) { toast('Pick the project folder first.', true); return; }
+  const title = document.getElementById('pub-title').value.trim();
+  const year = parseInt(document.getElementById('pub-year').value);
+  if (!title || !year) { toast('Title and year are required.', true); return; }
+
+  const authors = [...document.querySelectorAll('#pub-authors .author')].map(row => {
+    const nameInput = row.querySelector('input[type=text]');
+    const piInput = row.querySelector('input[type=checkbox]');
+    const n = nameInput.value.trim();
+    return n ? { name: n, pi: piInput.checked || undefined } : null;
+  }).filter(Boolean).map(a => { if (!a.pi) delete a.pi; return a; });
+
+  const venue = document.getElementById('pub-venue').value.trim();
+  const doi = document.getElementById('pub-doi').value.trim();
+  const url = document.getElementById('pub-url').value.trim();
+  const preprint = document.getElementById('pub-preprint').value.trim();
+  const code = document.getElementById('pub-code').value.trim();
+  const data = document.getElementById('pub-data').value.trim();
+  const openAccess = document.getElementById('pub-open-access').checked;
+  const researchgate = document.getElementById('pub-researchgate').value.trim();
+
+  const entry = { title, authors, year };
+  if (venue) entry.venue = venue;
+  if (doi) entry.doi = doi;
+  if (url) entry.url = url;
+  if (preprint) entry.preprint = preprint;
+  if (code) entry.code = code;
+  if (data) entry.data = data;
+  if (openAccess) entry.open_access = true;
+  if (researchgate) entry.researchgate = researchgate;
+
+  // Collect media coverage rows. Drop rows missing either name or URL
+  // so a half-filled row doesn't render a broken pill on the site.
+  const media = [...document.querySelectorAll('#pub-media-list .media')].map(row => {
+    const ins = row.querySelectorAll('input');
+    const n = ins[0].value.trim();
+    const u = ins[1].value.trim();
+    return (n && u) ? { name: n, url: u } : null;
+  }).filter(Boolean);
+  if (media.length) entry.media = media;
+
+  // Cover image: write new upload if provided; otherwise preserve the
+  // existing cover path (if any) when editing. When a new upload
+  // replaces an older cover, delete the old file so assets don't
+  // accumulate.
+  if (pubCoverData) {
+    // Filename: <year>-<journal>-<first-word-of-title>-cover.<ext>.
+    // The one-word title slug disambiguates the rare case of two
+    // papers in the same journal+year sharing a cover filename. We
+    // skip common stopwords so the word is actually meaningful
+    // (e.g. "A congruent topology…" → "congruent", not "a").
+    const stopwords = new Set(['a','an','the','of','on','in','and','or','for','to','with','from','by','at','as']);
+    const titleWords = slugify(title).split('-').filter(Boolean);
+    const firstMeaningful = titleWords.find(w => !stopwords.has(w)) || titleWords[0] || 'paper';
+    const journalSlug = slugify(venue || 'journal');
+    const origExt = (pubCoverData.name.match(/\.([a-zA-Z0-9]+)$/) || [, 'jpg'])[1].toLowerCase();
+    const safeCoverName = `${year}-${journalSlug}-${firstMeaningful}-cover.${origExt}`;
+    entry.cover = '/assets/images/publications/' + safeCoverName;
+    if (state.rootHandle) {
+      await writeBinary('assets/images/publications/' + safeCoverName, pubCoverData.buffer);
+      if (pubCoverExisting && pubCoverExisting !== entry.cover) {
+        try { await deleteFile(pubCoverExisting.replace(/^\//, '')); }
+        catch (e) { /* already gone */ }
+      }
+    } else {
+      downloadFile(safeCoverName, new Blob([pubCoverData.buffer]));
+    }
+  } else if (pubCoverExisting) {
+    entry.cover = pubCoverExisting;
+  }
+
+  const editIdx = document.getElementById('pub-edit-index').value;
+  if (editIdx !== '') {
+    state.pubs[parseInt(editIdx)] = entry;
+  } else {
+    state.pubs.unshift(entry);
+  }
+
+  const content = dumpPubs();
+  if (state.rootHandle) {
+    await writeFile('_data/publications.yml', content);
+    toast(editIdx !== '' ? 'Updated publication' : 'Added publication');
+  } else {
+    downloadFile('publications.yml', content, 'text/yaml');
+    toast('Downloaded publications.yml — replace the one in _data/');
+  }
+  await loadPublications();
+  renderPubExisting();
+  resetPubForm();
+});
+
+document.getElementById('pub-reset').addEventListener('click', resetPubForm);
+
+function resetPubForm() {
+  document.getElementById('pub-form').reset();
+  document.getElementById('pub-edit-index').value = '';
+  document.getElementById('pub-form-heading').textContent = 'Add a publication';
+  document.getElementById('pub-fetch-status').textContent = '';
+  document.getElementById('pub-cover-preview').style.display = 'none';
+  document.getElementById('pub-cover-preview').innerHTML = '';
+  document.getElementById('pub-cover-current').style.display = 'none';
+  document.getElementById('pub-cover-current').textContent = '';
+  pubCoverData = null;
+  pubCoverExisting = '';
+  renderPubAuthors([]);
+  renderPubMedia([]);
+}
+
+// Simple "inline markdown" renderer for the widget list — enough to
+// show italicized species names. HTML-escape first (safety), then
+// turn *…* into <em>…</em>. Not a full Markdown parser by design.
+function renderInlineMd(str) {
+  return escapeHtml(str || '').replace(/\*([^*]+)\*/g, '<em>$1</em>');
+}
+
+// Move a publication up or down among OTHER PAPERS IN THE SAME YEAR,
+// then persist the new order. The site template sorts by year
+// (stable), so within-year order on the site matches the YAML order.
+async function movePublication(globalIdx, direction) {
+  const p = state.pubs[globalIdx];
+  if (!p) return;
+  const peers = state.pubs
+    .map((x, i) => ({ x, i }))
+    .filter(({ x }) => x.year === p.year);
+  const pos = peers.findIndex(peer => peer.i === globalIdx);
+  const targetPos = pos + direction;
+  if (targetPos < 0 || targetPos >= peers.length) return;       // edge
+  const swapWithIdx = peers[targetPos].i;
+  [state.pubs[globalIdx], state.pubs[swapWithIdx]] =
+    [state.pubs[swapWithIdx], state.pubs[globalIdx]];
+  await writeFile('_data/publications.yml', dumpPubs());
+  renderPubExisting();
+}
+
+function renderPubExisting() {
+  const box = document.getElementById('pub-existing');
+  if (state.pubs.length === 0) { box.innerHTML = ''; return; }
+
+  // ----- Group by year (desc); each year is a collapsible section. -----
+  // Each entry carries its original index in state.pubs so the
+  // edit/delete/reorder handlers still hit the right row.
+  const groups = new Map();
+  state.pubs.forEach((p, origIdx) => {
+    const y = p.year ? String(p.year) : 'Undated';
+    if (!groups.has(y)) groups.set(y, []);
+    groups.get(y).push({ p, origIdx });
+  });
+
+  const years = Array.from(groups.keys()).sort((a, b) => {
+    if (a === 'Undated') return 1;
+    if (b === 'Undated') return -1;
+    return parseInt(b) - parseInt(a);
+  });
+
+  const sections = years.map(y => {
+    const members = groups.get(y);
+    const list = members.map(({ p, origIdx }, localIdx) => {
+      // Tiny inline cover thumb so editors can see at a glance which
+      // entries already have a cover assigned. Path is site-absolute
+      // (starts with `/assets/…`), but the widget lives at /widget/,
+      // so we prepend `..` to resolve it from the widget's folder.
+      const coverThumb = p.cover
+        ? `<img class="pub-row-cover" src="${escapeAttr('..' + p.cover)}" alt="">`
+        : '';
+      return `
+        <div class="existing-item">
+          <div class="reorder">
+            <button class="reorder-btn" data-pub-up="${origIdx}" title="Move up" ${localIdx === 0 ? 'disabled' : ''}>▲</button>
+            <button class="reorder-btn" data-pub-down="${origIdx}" title="Move down" ${localIdx === members.length - 1 ? 'disabled' : ''}>▼</button>
+          </div>
+          ${coverThumb}
+          <div class="existing-item__text">
+            <div><b>${renderInlineMd(p.title)}</b></div>
+            <div class="meta">${escapeHtml((p.authors||[]).map(a=>a.name).join(', '))}${p.venue ? ' · <i>' + escapeHtml(p.venue) + '</i>' : ''}</div>
+          </div>
+          <div class="actions-inline">
+            <button class="btn ghost small" data-pub-edit="${origIdx}">Edit</button>
+            <button class="btn ghost small" data-pub-del="${origIdx}">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    // No `open` attr → every year starts collapsed.
+    return `
+      <details class="news-group">
+        <summary>${escapeHtml(y)} <span class="count">(${members.length})</span></summary>
+        ${list}
+      </details>
+    `;
+  }).join('');
+
+  box.innerHTML = `
+    <div class="existing">
+      <h3>Publications (${state.pubs.length})</h3>
+      <p class="helper" style="margin-top:-0.25rem;margin-bottom:1rem;">
+        Click a year to expand. Use ▲▼ to reorder within a year.
+      </p>
+      ${sections}
+    </div>
+  `;
+
+  box.querySelectorAll('[data-pub-edit]').forEach(b => {
+    b.addEventListener('click', () => loadPubIntoForm(parseInt(b.dataset.pubEdit)));
+  });
+  box.querySelectorAll('[data-pub-del]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const p = state.pubs[parseInt(b.dataset.pubDel)];
+      if (!confirm('Delete "' + p.title + '"?')) return;
+      state.pubs.splice(parseInt(b.dataset.pubDel), 1);
+      await writeFile('_data/publications.yml', dumpPubs());
+      // Remove the cover asset too so nothing orphans.
+      if (p.cover) {
+        try { await deleteFile(p.cover.replace(/^\//, '')); }
+        catch (e) { /* already gone — ignore */ }
+      }
+      await loadPublications();
+      renderPubExisting();
+      toast('Deleted');
+    });
+  });
+  box.querySelectorAll('[data-pub-up]').forEach(b => {
+    b.addEventListener('click', () => movePublication(parseInt(b.dataset.pubUp), -1));
+  });
+  box.querySelectorAll('[data-pub-down]').forEach(b => {
+    b.addEventListener('click', () => movePublication(parseInt(b.dataset.pubDown), +1));
+  });
+}
+
+function loadPubIntoForm(i) {
+  const p = state.pubs[i];
+  document.getElementById('pub-doi').value = p.doi || '';
+  document.getElementById('pub-title').value = p.title || '';
+  document.getElementById('pub-year').value = p.year || '';
+  document.getElementById('pub-venue').value = p.venue || '';
+  document.getElementById('pub-url').value = p.url || '';
+  document.getElementById('pub-preprint').value = p.preprint || '';
+  document.getElementById('pub-code').value = p.code || '';
+  document.getElementById('pub-data').value = p.data || '';
+  document.getElementById('pub-open-access').checked = !!p.open_access;
+  document.getElementById('pub-researchgate').value = p.researchgate || '';
+  document.getElementById('pub-edit-index').value = i;
+  document.getElementById('pub-form-heading').textContent = 'Edit publication';
+  // Cover: remember existing path so we keep it unless a new file is uploaded.
+  pubCoverData = null;
+  pubCoverExisting = p.cover || '';
+  document.getElementById('pub-cover').value = '';
+  document.getElementById('pub-cover-preview').style.display = 'none';
+  document.getElementById('pub-cover-preview').innerHTML = '';
+  const currentEl = document.getElementById('pub-cover-current');
+  if (pubCoverExisting) {
+    currentEl.innerHTML = `Current cover: <a href="${escapeAttr('..' + pubCoverExisting)}" target="_blank">${escapeHtml(pubCoverExisting)}</a> — upload a new file to replace.`;
+    currentEl.style.display = 'block';
+  } else {
+    currentEl.textContent = '';
+    currentEl.style.display = 'none';
+  }
+  renderPubAuthors(p.authors || []);
+  renderPubMedia(p.media || []);
+  document.querySelector('[data-panel="publications"]').click();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ============================================================
+// FIELDWORK
+// ============================================================
+// Edits the expedition list stored at _data/fieldwork.yml. Each
+// expedition has a title and an ordered list of photos; photos are
+// written to /assets/images/fieldwork/${slug}-${N}.jpg with a
+// `-full.jpg` companion for the lightbox.
+
+// fieldworkData is a parallel structure to the YAML:
+//   [{ slug, title, photos: [photoItem, ...] }, ...]
+// photoItem mirrors what news gallery items use:
+//   { existingPath, existingFullPath, caption, alt, _img, _cropper,
+//     _fromUpload, _savedCropState, letterbox }
+let fieldworkData = [];
+// Paths the page had on load — same orphan-cleanup trick as news.
+let fieldworkExistingPaths = [];
+
+async function loadFieldwork() {
+  fieldworkData = [];
+  fieldworkExistingPaths = [];
+  try {
+    const text = await readFile('_data/fieldwork.yml');
+    const parsed = jsyaml.load(text);
+    if (Array.isArray(parsed)) {
+      parsed.forEach(exp => {
+        // Each expedition tracks the paths it had on load so per-
+        // expedition save can clean up orphans without touching other
+        // expeditions' files. fieldworkExistingPaths kept too as a
+        // global fallback / safety net.
+        const expExistingPaths = [];
+        const photos = (exp.photos || []).map(p => {
+          if (p.path) { expExistingPaths.push(p.path); fieldworkExistingPaths.push(p.path); }
+          if (p.full) { expExistingPaths.push(p.full); fieldworkExistingPaths.push(p.full); }
+          return {
+            existingPath: p.path || '',
+            existingFullPath: p.full || '',
+            caption: p.caption || p.alt || '',
+            alt:     p.alt     || p.caption || '',
+            letterbox: !!(p.crop && p.crop.letterbox),
+            _savedCropState: p.crop ? {
+              focalX:    typeof p.crop.x === 'number'    ? p.crop.x    : 0.5,
+              focalY:    typeof p.crop.y === 'number'    ? p.crop.y    : 0.5,
+              zoom:      typeof p.crop.zoom === 'number' ? p.crop.zoom : 1,
+              letterbox: !!p.crop.letterbox,
+            } : null,
+          };
+        });
+        fieldworkData.push({
+          slug: exp.slug || '',
+          title: exp.title || '',
+          photos,
+          _existingPaths: expExistingPaths,
+        });
+      });
+    }
+  } catch (e) { /* file may not exist yet — start with empty list */ }
+}
+
+// Render the entire fieldwork form. Called once after load AND after
+// any add/remove/reorder of expeditions (so expedition-level changes
+// re-flow). Photo-level adds/removes append/remove DOM directly so
+// cropper state on other rows is preserved (same pattern as news).
+function renderFieldwork() {
+  const box = document.getElementById('fieldwork-list');
+  box.innerHTML = '';
+  fieldworkData.forEach((exp, expIdx) => {
+    box.appendChild(buildExpeditionCard(exp, expIdx));
+  });
+}
+
+function buildExpeditionCard(exp, expIdx) {
+  const card = document.createElement('details');
+  card.className = 'fw-exp';
+  // All expeditions collapsed by default — keeps the panel scannable
+  // when there are many trips. Click a header to expand. Exception:
+  // a freshly-added expedition opens automatically so the user can
+  // start typing without an extra click.
+  if (exp._justAdded) {
+    card.open = true;
+    delete exp._justAdded;
+  }
+  card.innerHTML = `
+    <summary class="fw-exp__head">
+      <span><b>${escapeHtml(exp.title || '(untitled expedition)')}</b>
+      <span class="hint">(${exp.photos.length} photo${exp.photos.length === 1 ? '' : 's'})</span></span>
+      <span class="fw-exp__head-actions">
+        <button type="button" class="reorder-btn" data-fw="exp-up"    title="Move up"   ${expIdx === 0 ? 'disabled' : ''}>▲</button>
+        <button type="button" class="reorder-btn" data-fw="exp-down"  title="Move down" ${expIdx === fieldworkData.length - 1 ? 'disabled' : ''}>▼</button>
+        <button type="button" class="btn ghost small" data-fw="exp-remove">Remove</button>
+      </span>
+    </summary>
+    <div class="fw-exp__body">
+      <div class="row two-col">
+        <div>
+          <label>Title <span class="hint">(shown as the section header)</span></label>
+          <input type="text" data-fw="title" value="${escapeAttr(exp.title)}" placeholder="e.g., 2024 Galápagos, Santa Cruz">
+        </div>
+        <div>
+          <label>Slug <span class="hint">(filename prefix; auto-generated)</span></label>
+          <input type="text" data-fw="slug" value="${escapeAttr(exp.slug)}" placeholder="e.g., 2024-galapagos">
+        </div>
+      </div>
+      <div class="row">
+        <label>Photos
+          <span class="hint">(use ▲▼ to reorder; Caption shown under the photo)</span>
+          <button type="button" class="btn ghost small" data-fw="photo-add" style="margin-left:.5rem;">+ Add photo</button>
+        </label>
+        <div class="gallery-list" data-fw="photos"></div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn primary" data-fw="exp-save">Save expedition</button>
+      </div>
+    </div>
+  `;
+
+  const titleInput = card.querySelector('[data-fw="title"]');
+  const slugInput  = card.querySelector('[data-fw="slug"]');
+  const photosBox  = card.querySelector('[data-fw="photos"]');
+
+  // Auto-derive slug from title until the user types a custom slug.
+  // We only auto-fill while slug is empty OR still matches what we'd
+  // derive from the previous title, so manual edits stick.
+  let lastDerivedSlug = slugify(exp.title || '');
+  titleInput.addEventListener('input', () => {
+    exp.title = titleInput.value;
+    if (slugInput.value === '' || slugInput.value === lastDerivedSlug) {
+      const next = slugify(titleInput.value);
+      slugInput.value = next;
+      exp.slug = next;
+      lastDerivedSlug = next;
+    }
+  });
+  slugInput.addEventListener('input', () => { exp.slug = slugInput.value; });
+
+  // Reorder / remove the WHOLE expedition.
+  card.querySelector('[data-fw="exp-up"]').addEventListener('click', e => {
+    e.preventDefault();
+    if (expIdx > 0) {
+      [fieldworkData[expIdx - 1], fieldworkData[expIdx]] = [fieldworkData[expIdx], fieldworkData[expIdx - 1]];
+      renderFieldwork();
+    }
+  });
+  card.querySelector('[data-fw="exp-down"]').addEventListener('click', e => {
+    e.preventDefault();
+    if (expIdx < fieldworkData.length - 1) {
+      [fieldworkData[expIdx], fieldworkData[expIdx + 1]] = [fieldworkData[expIdx + 1], fieldworkData[expIdx]];
+      renderFieldwork();
+    }
+  });
+  card.querySelector('[data-fw="exp-remove"]').addEventListener('click', e => {
+    e.preventDefault();
+    if (!confirm(`Remove expedition "${exp.title || '(untitled)'}"? Its photos will be deleted on save.`)) return;
+    fieldworkData.splice(expIdx, 1);
+    renderFieldwork();
+  });
+  card.querySelector('[data-fw="exp-save"]').addEventListener('click', e => {
+    e.preventDefault();
+    saveOneExpedition(exp);
+  });
+
+  // Build a photo row per existing photo. New rows are appended in-place.
+  exp.photos.forEach(p => photosBox.appendChild(buildPhotoRow(exp, p, photosBox)));
+
+  card.querySelector('[data-fw="photo-add"]').addEventListener('click', e => {
+    e.preventDefault();
+    const item = { caption: '', alt: '', letterbox: false };
+    exp.photos.push(item);
+    photosBox.appendChild(buildPhotoRow(exp, item, photosBox));
+  });
+
+  return card;
+}
+
+// One photo row — cropper on the left, controls on the right, plus
+// up/down/remove. Cropper state restoration follows the same pattern
+// as news gallery rows (read item._savedCropState after loadImage).
+function buildPhotoRow(exp, item, photosBox) {
+  const row = document.createElement('div');
+  row.className = 'gallery-row';
+  const uid = 'fp-' + Math.random().toString(36).slice(2, 8);
+  row.innerHTML = `
+    <div class="gallery-row__cropper">
+      <div class="cropper cropper--rect">
+        <div class="cropper__stage"><canvas width="800" height="800"></canvas></div>
+        <div class="cropper__controls">
+          <label for="${uid}-zoom">Zoom</label>
+          <input type="range" id="${uid}-zoom" min="1" max="4" step="0.01" value="1">
+          <button type="button" class="btn ghost small" data-action="reset">Reset</button>
+          <label class="gallery-row__letterbox-label">
+            <input type="checkbox" data-action="letterbox">
+            Show entire photo
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="gallery-row__controls">
+      <label class="gallery-row__file-label">
+        Photo <input type="file" accept="image/*,application/pdf" data-action="file">
+      </label>
+      <label class="gallery-row__alt-label">
+        Caption <span class="hint">(optional)</span>
+        <input type="text" placeholder="Describe the photo" data-action="alt" value="${escapeAttr(item.caption || item.alt || '')}">
+      </label>
+      <div style="display:flex; gap:.4rem; align-items:center;">
+        <button type="button" class="reorder-btn" data-action="up"     title="Move up">▲</button>
+        <button type="button" class="reorder-btn" data-action="down"   title="Move down">▼</button>
+        <button type="button" class="btn ghost small" data-action="remove">Remove</button>
+      </div>
+    </div>
+  `;
+
+  const cropperWrap = row.querySelector('.cropper');
+  const stageEl     = row.querySelector('.cropper__stage');
+  const canvasEl    = row.querySelector('canvas');
+  const zoomEl      = row.querySelector(`#${uid}-zoom`);
+  const resetBtn    = row.querySelector('[data-action="reset"]');
+  const letterboxCb = row.querySelector('[data-action="letterbox"]');
+  const fileInput   = row.querySelector('[data-action="file"]');
+  const altInput    = row.querySelector('[data-action="alt"]');
+  const removeBtn   = row.querySelector('[data-action="remove"]');
+  const upBtn       = row.querySelector('[data-action="up"]');
+  const downBtn     = row.querySelector('[data-action="down"]');
+
+  const cropper = new SquareCropper({
+    wrap: cropperWrap, stage: stageEl, canvas: canvasEl,
+    zoom: zoomEl, reset: resetBtn, letterbox: letterboxCb,
+  });
+  item._cropper = cropper;
+  letterboxCb.checked = !!item.letterbox;
+
+  function restoreCropState() {
+    if (item._savedCropState) {
+      item.letterbox = item._savedCropState.letterbox;
+      letterboxCb.checked = item.letterbox;
+      cropper.setCropState(item._savedCropState);
+    }
+  }
+
+  if (item._img) {
+    cropper.setLetterbox(!!item.letterbox);
+    cropper.loadImage(item._img);
+    restoreCropState();
+  } else if (item.existingPath && state.rootHandle) {
+    const sourcePath = (item.existingFullPath || item.existingPath).replace(/^\//, '');
+    readBinary(sourcePath).then(file => {
+      const url = URL.createObjectURL(file);
+      const im = new Image();
+      im.onload = () => {
+        URL.revokeObjectURL(url);
+        item._img = im;
+        item._fromUpload = false;
+        cropper.setLetterbox(!!item.letterbox);
+        cropper.loadImage(im);
+        restoreCropState();
+      };
+      im.src = url;
+    }).catch(() => { /* file missing — leave cropper hidden */ });
+  } else {
+    cropper.hide();
+  }
+
+  fileInput.addEventListener('change', async () => {
+    const f = fileInput.files[0];
+    if (!f) return;
+    if (rejectIfHeic(f)) { fileInput.value = ''; return; }
+    let im;
+    try { im = await fileToImage(f); }
+    catch (e) { toast("Couldn't read that file: " + (e.message || e), true); fileInput.value = ''; return; }
+    item._img = im;
+    item._fromUpload = true;
+    item.name = /\.pdf$/i.test(f.name) ? f.name.replace(/\.pdf$/i, '.jpg') : f.name;
+    item.existingPath = '';
+    item.existingFullPath = '';
+    cropper.setLetterbox(!!item.letterbox);
+    cropper.loadImage(im);
+  });
+
+  altInput.addEventListener('input', () => {
+    item.caption = altInput.value;
+    item.alt     = altInput.value;
+  });
+  letterboxCb.addEventListener('change', () => {
+    item.letterbox = letterboxCb.checked;
+    cropper.setLetterbox(letterboxCb.checked);
+  });
+
+  removeBtn.addEventListener('click', () => {
+    const idx = exp.photos.indexOf(item);
+    if (idx >= 0) exp.photos.splice(idx, 1);
+    row.remove();
+  });
+  upBtn.addEventListener('click', () => {
+    const idx = exp.photos.indexOf(item);
+    if (idx > 0) {
+      [exp.photos[idx - 1], exp.photos[idx]] = [exp.photos[idx], exp.photos[idx - 1]];
+      const prevRow = row.previousElementSibling;
+      if (prevRow) photosBox.insertBefore(row, prevRow);
+    }
+  });
+  downBtn.addEventListener('click', () => {
+    const idx = exp.photos.indexOf(item);
+    if (idx < exp.photos.length - 1) {
+      [exp.photos[idx], exp.photos[idx + 1]] = [exp.photos[idx + 1], exp.photos[idx]];
+      const nextRow = row.nextElementSibling;
+      if (nextRow) photosBox.insertBefore(row, nextRow.nextElementSibling);
+    }
+  });
+
+  return row;
+}
+
+// "+ Add expedition": prepend an empty expedition so newer trips sit
+// at the top (matches the reverse-chronological order most people
+// expect). Mark `_justAdded` so the card renders expanded — usually
+// the user wants to immediately fill in the title.
+document.getElementById('fieldwork-add').addEventListener('click', () => {
+  fieldworkData.unshift({ slug: '', title: '', photos: [], _existingPaths: [], _justAdded: true });
+  renderFieldwork();
+  // Bring it into view in case the panel was scrolled.
+  document.getElementById('fieldwork-list').firstElementChild
+    ?.querySelector('input[data-fw="title"]')?.focus();
+});
+
+// Build the YAML entry for one expedition. Two modes:
+//   writeFiles=true  → process each photo, write thumb + full files,
+//                      and the entry references the freshly-written paths.
+//   writeFiles=false → leave files untouched; the entry references the
+//                      photo's `existingPath` so the YAML stays consistent
+//                      with whatever is actually on disk for that
+//                      expedition. Photos without an existing path are
+//                      simply omitted (they were added but not saved yet).
+async function buildExpeditionEntry(exp, writeFiles) {
+  const photosOut = [];
+  const finalPathsForExp = new Set();
+  for (let i = 0; i < exp.photos.length; i++) {
+    const p = exp.photos[i];
+    let path = null, fullPath = null;
+
+    if (writeFiles) {
+      const thumbBuf = p._cropper ? p._cropper.getBuffer() : null;
+      if (thumbBuf) {
+        const n = i + 1;
+        const thumbName = `${exp.slug}-${n}.jpg`;
+        const fullName  = `${exp.slug}-${n}-full.jpg`;
+        path = '/assets/images/fieldwork/' + thumbName;
+        if (state.rootHandle) {
+          await writeBinary('assets/images/fieldwork/' + thumbName, thumbBuf);
+        } else {
+          downloadFile(thumbName, new Blob([thumbBuf]));
+        }
+        if (p._fromUpload && p._img) {
+          fullPath = '/assets/images/fieldwork/' + fullName;
+          const fullBuf = await resizeToFullRes(p._img);
+          if (state.rootHandle) {
+            await writeBinary('assets/images/fieldwork/' + fullName, fullBuf);
+          } else {
+            downloadFile(fullName, new Blob([fullBuf]));
+          }
+        } else if (p.existingFullPath) {
+          fullPath = p.existingFullPath;
+        }
+      } else if (p.existingPath) {
+        path = p.existingPath;
+        if (p.existingFullPath) fullPath = p.existingFullPath;
+      }
+    } else {
+      // Don't write files — just carry existing paths through.
+      if (p.existingPath) {
+        path = p.existingPath;
+        if (p.existingFullPath) fullPath = p.existingFullPath;
+      }
+    }
+    if (!path) continue;
+
+    const entry = { path };
+    if (fullPath) entry.full = fullPath;
+    const desc = p.caption || p.alt;
+    if (desc) { entry.alt = desc; entry.caption = desc; }
+    if (p._cropper) {
+      const s = p._cropper.getCropState();
+      if (s) {
+        const isDefault = !s.letterbox && Math.abs(s.zoom - 1) < 0.001 &&
+                          Math.abs(s.focalX - 0.5) < 0.001 && Math.abs(s.focalY - 0.5) < 0.001;
+        if (!isDefault) {
+          const r = n => Math.round(n * 10000) / 10000;
+          const crop = { x: r(s.focalX), y: r(s.focalY), zoom: r(s.zoom) };
+          if (s.letterbox) crop.letterbox = true;
+          entry.crop = crop;
+        }
+      }
+    }
+    photosOut.push(entry);
+    finalPathsForExp.add(path);
+    if (fullPath) finalPathsForExp.add(fullPath);
+  }
+  return {
+    entry: { slug: exp.slug, title: exp.title, photos: photosOut },
+    paths: finalPathsForExp,
+  };
+}
+
+// Save ONE expedition's photo files, then rewrite the full
+// _data/fieldwork.yml. Other expeditions keep their existing paths
+// (their unsaved edits to crop/caption stay in memory until their own
+// Save button is clicked).
+async function saveOneExpedition(exp) {
+  if (!state.rootHandle && hasFSA) { toast('Pick the project folder first.', true); return; }
+  if (!exp.title.trim()) { toast('Expedition needs a title.', true); return; }
+  if (!exp.slug.trim())  exp.slug = slugify(exp.title);
+
+  // 1. Write THIS expedition's photo files; compute its YAML entry.
+  const { entry: savedEntry, paths: savedPaths } = await buildExpeditionEntry(exp, true);
+
+  // 2. Build entries for everyone else using their existing paths
+  //    (we're not writing files for them).
+  const yamlOut = [];
+  for (const e of fieldworkData) {
+    if (e === exp) {
+      yamlOut.push(savedEntry);
+    } else {
+      const { entry } = await buildExpeditionEntry(e, false);
+      yamlOut.push(entry);
+    }
+  }
+
+  // 3. Orphan cleanup — files this expedition had before but no longer.
+  if (state.rootHandle) {
+    for (const old of (exp._existingPaths || [])) {
+      if (!savedPaths.has(old)) {
+        try { await deleteFile(old.replace(/^\//, '')); } catch (e) { /* gone */ }
+      }
+    }
+  }
+
+  // 4. Write the YAML.
+  const header = '# Fieldwork expeditions — edit here or via the widget (widget/index.html).\n# Each entry: { slug, title, photos: [{path, full, caption?, crop?}, ...] }\n';
+  const yamlText = header + jsyaml.dump(yamlOut, { lineWidth: 120, noRefs: true });
+  if (state.rootHandle) {
+    await writeFile('_data/fieldwork.yml', yamlText);
+    toast(`Saved "${exp.title}"`);
+  } else {
+    downloadFile('fieldwork.yml', yamlText, 'text/yaml');
+  }
+
+  // 5. After save, the freshly-written paths become "existing" for
+  //    next time. Sync the runtime state too: each photo's
+  //    existingPath/existingFullPath now matches what's on disk.
+  exp._existingPaths = [...savedPaths];
+  exp.photos.forEach((p, i) => {
+    const newEntry = savedEntry.photos[i];
+    if (!newEntry) return;
+    p.existingPath     = newEntry.path;
+    p.existingFullPath = newEntry.full || '';
+    p._fromUpload      = false;   // it's on disk now
+  });
+}
+
+// ---------- Helpers ----------
+function escapeHtml(s) {
+  return (s == null ? '' : String(s))
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+// ---------- First-load hint ----------
+if (!hasFSA) {
+  const el = document.createElement('div');
+  el.className = 'muted-note';
+  el.innerHTML = 'Your browser does not support direct folder writes. The widget will let you <b>download</b> each generated file, which you then drop into the right folder in the project. For the smoothest workflow, use Chrome, Edge, Arc, or Brave.';
+  document.querySelector('main').prepend(el);
+}
+
+// ---------- Auto-reconnect to saved folder on page load ----------
+// Three outcomes:
+//  1. Permission still 'granted' -> silently restore, hide pick/reconnect buttons.
+//  2. Permission 'prompt' -> show a one-click "Reconnect" button (browsers
+//     require a user gesture to re-grant).
+//  3. No saved handle or permission denied -> show normal "Choose project folder".
+function updateFolderButtons({ connected, needsReconnect }) {
+  document.getElementById('pick-folder').style.display    = connected || needsReconnect ? 'none' : '';
+  document.getElementById('reconnect-folder').style.display = needsReconnect ? '' : 'none';
+  document.getElementById('forget-folder').style.display  = connected || needsReconnect ? '' : 'none';
+}
+
+document.getElementById('reconnect-folder').addEventListener('click', async () => {
+  const ok = await tryRestoreFolder(true);   // true = allowed to prompt
+  if (ok) {
+    updateFolderButtons({ connected: true, needsReconnect: false });
+    toast('Reconnected to ' + state.rootHandle.name);
+  } else {
+    toast('Could not reconnect — pick the folder manually.', true);
+    updateFolderButtons({ connected: false, needsReconnect: false });
+  }
+});
+
+(async function initFolder() {
+  if (!hasFSA) { updateFolderButtons({ connected: false, needsReconnect: false }); return; }
+  const handle = await idbGetHandle().catch(() => null);
+  if (!handle) { updateFolderButtons({ connected: false, needsReconnect: false }); return; }
+  const perm = await handle.queryPermission({ mode: 'readwrite' });
+  if (perm === 'granted') {
+    const ok = await tryRestoreFolder(false);
+    updateFolderButtons({ connected: ok, needsReconnect: !ok });
+    if (ok) toast('Connected: ' + handle.name);
+  } else if (perm === 'prompt') {
+    // Show the handle name but require a click to re-grant permission.
+    document.getElementById('folder-name').textContent = handle.name + ' (needs reconnect)';
+    updateFolderButtons({ connected: false, needsReconnect: true });
+  } else {
+    await idbClearHandle().catch(() => {});
+    updateFolderButtons({ connected: false, needsReconnect: false });
+  }
+})();
+
+</script>
+
+</body>
+</html>

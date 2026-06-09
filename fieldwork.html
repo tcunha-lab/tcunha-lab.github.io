@@ -1,0 +1,69 @@
+---
+layout: page
+title: Field Work
+permalink: /fieldwork/
+body_class: fieldwork
+hide_title: true
+---
+
+<section class="page-section" data-reveal>
+  <div class="page-section-head">
+    <h2>Cunha Lab fieldwork around the world</h2>
+  </div>
+  {%- comment -%}
+    Tauana's interactive Google My Map of all past fieldwork localities.
+    The 16:9 responsive wrapper keeps the iframe at a sensible aspect
+    on any screen width; max-height stops it from dominating very tall
+    viewports. `loading="lazy"` defers the heavy Maps script until the
+    iframe is near the viewport.
+  {%- endcomment -%}
+  <div class="map-embed">
+    {%- comment -%}
+      Broader view at z=2 so all four placemarks (Panama -80°,
+      La Palma -18°, Maldives 73°, Okinawa 128°) are visible at
+      once without panning. My Maps' auto-fit pass tends to drop
+      this one zoom level further (to z=1), which causes the world
+      to repeat horizontally — Tauana prefers that visible-by-default
+      tradeoff over z=3, which cropped Japan's placemarks. Center
+      shifted slightly west of the saved default to balance the
+      Americas (Panama, La Palma) against the Pacific span (Maldives,
+      Okinawa) within whichever zoom Google settles on.
+    {%- endcomment -%}
+    <iframe
+      src="https://www.google.com/maps/d/u/0/embed?mid=1XLF8hCMrkN2owREr7o4Qaq6aIHtIj8IA&ll=15,-8&z=2"
+      title="Cunha Lab fieldwork localities — interactive map"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade"
+      allowfullscreen>
+    </iframe>
+  </div>
+</section>
+
+{%- comment -%}
+  Expedition data lives in _data/fieldwork.yml so the widget can read
+  and write it just like _data/team.yml. Each expedition is rendered
+  as one .page-section with the title (same thin-line style as Teaching)
+  followed by a square photo gallery.
+{%- endcomment -%}
+{% for exp in site.data.fieldwork %}
+  <section class="page-section" data-reveal>
+    <div class="page-section-head">
+      <h2>{{ exp.title }}</h2>
+    </div>
+    <div class="photo-gallery">
+      {% for photo in exp.photos %}
+        <figure class="photo-gallery-item">
+          <img src="{{ photo.path | relative_url }}"
+               alt="{{ photo.alt | default: exp.title }}"
+               loading="lazy"
+               data-lightbox
+               data-lightbox-src="{{ photo.full | default: photo.path | relative_url }}"
+               {% if photo.caption %}data-lightbox-caption="{{ photo.caption | escape }}"{% endif %}>
+          {% if photo.caption %}<figcaption>{{ photo.caption }}</figcaption>{% endif %}
+        </figure>
+      {% endfor %}
+    </div>
+  </section>
+{% endfor %}
+
+{% include lightbox.html %}

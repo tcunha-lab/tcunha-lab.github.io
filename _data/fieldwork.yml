@@ -1,0 +1,150 @@
+# Fieldwork expeditions — edit here or via the widget (widget/index.html).
+# Each entry: { slug, title, photos: [{path, full, caption?, crop?}, ...] }
+- slug: 2023-lapalma
+  title: 2023 Canary Islands, La Palma
+  photos:
+    - path: /assets/images/fieldwork/2023-lapalma-1.jpg
+      full: /assets/images/fieldwork/2023-lapalma-1-full.jpg
+      crop:
+        x: 0.4887
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2023-lapalma-2.jpg
+      full: /assets/images/fieldwork/2023-lapalma-2-full.jpg
+      crop:
+        x: 0.5216
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2023-lapalma-3.jpg
+      full: /assets/images/fieldwork/2023-lapalma-3-full.jpg
+      crop:
+        x: 0.4813
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2023-lapalma-4.jpg
+      full: /assets/images/fieldwork/2023-lapalma-4-full.jpg
+      crop:
+        x: 0.5145
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2023-lapalma-5.jpg
+      full: /assets/images/fieldwork/2023-lapalma-5-full.jpg
+      crop:
+        x: 0.4737
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2023-lapalma-6.jpg
+      full: /assets/images/fieldwork/2023-lapalma-6-full.jpg
+      crop:
+        x: 0.375
+        'y': 0.5
+        zoom: 1
+- slug: 2021-panama
+  title: 2020-2022 Panama, throughout the Pacific Coast
+  photos:
+    - path: /assets/images/fieldwork/2021-panama-1.jpg
+      full: /assets/images/fieldwork/2021-panama-1-full.jpg
+    - path: /assets/images/fieldwork/2021-panama-2.jpg
+      full: /assets/images/fieldwork/2021-panama-2-full.jpg
+      crop:
+        x: 0.488
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2021-panama-3.jpg
+      full: /assets/images/fieldwork/2021-panama-3-full.jpg
+      crop:
+        x: 0.5032
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2021-panama-4.jpg
+      full: /assets/images/fieldwork/2021-panama-4-full.jpg
+      crop:
+        x: 0.467
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2021-panama-5.jpg
+      full: /assets/images/fieldwork/2021-panama-5-full.jpg
+      crop:
+        x: 0.4813
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2021-panama-6.jpg
+      full: /assets/images/fieldwork/2021-panama-6-full.jpg
+      crop:
+        x: 0.551
+        'y': 0.5
+        zoom: 1
+- slug: 2019-maldives
+  title: 2019 Maldives, Magoodhoo Island
+  photos:
+    - path: /assets/images/fieldwork/2019-maldives-1.jpg
+      full: /assets/images/fieldwork/2019-maldives-1-full.jpg
+      crop:
+        x: 0.5056
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2019-maldives-2.jpg
+      full: /assets/images/fieldwork/2019-maldives-2-full.jpg
+      crop:
+        x: 0.4918
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2019-maldives-3.jpg
+      full: /assets/images/fieldwork/2019-maldives-3-full.jpg
+      crop:
+        x: 0.5062
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2019-maldives-4.jpg
+      full: /assets/images/fieldwork/2019-maldives-4-full.jpg
+      crop:
+        x: 0.4949
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2019-maldives-5.jpg
+      full: /assets/images/fieldwork/2019-maldives-5-full.jpg
+      crop:
+        x: 0.4478
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2019-maldives-6.jpg
+      full: /assets/images/fieldwork/2019-maldives-6-full.jpg
+- slug: 2016-okinawa
+  title: 2016 Japan, Okinawa
+  photos:
+    - path: /assets/images/fieldwork/2016-okinawa-1.jpg
+      full: /assets/images/fieldwork/2016-okinawa-1-full.jpg
+      crop:
+        x: 0.5295
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2016-okinawa-2.jpg
+      full: /assets/images/fieldwork/2016-okinawa-2-full.jpg
+      crop:
+        x: 0.5883
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2016-okinawa-3.jpg
+      full: /assets/images/fieldwork/2016-okinawa-3-full.jpg
+      crop:
+        x: 0.4282
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2016-okinawa-4.jpg
+      full: /assets/images/fieldwork/2016-okinawa-4-full.jpg
+      crop:
+        x: 0.5141
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2016-okinawa-5.jpg
+      full: /assets/images/fieldwork/2016-okinawa-5-full.jpg
+      crop:
+        x: 0.5021
+        'y': 0.5
+        zoom: 1
+    - path: /assets/images/fieldwork/2016-okinawa-6.jpg
+      full: /assets/images/fieldwork/2016-okinawa-6-full.jpg
+      crop:
+        x: 0.4164
+        'y': 0.5
+        zoom: 1

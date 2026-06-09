@@ -1,0 +1,140 @@
+---
+layout: page
+title: Publications
+permalink: /publications/
+body_class: publications
+hide_title: true
+---
+
+{%- comment -%}
+  Publications live in _data/publications.yml. Each entry can have:
+    title, authors (list), year, venue, doi, url, pdf, preprint,
+    open_access (bool), researchgate (per-paper URL),
+    cover (path to journal cover thumb), code, data,
+    media (list of {name, url} — outlets that covered the paper).
+
+  Layout: compact — title on one line, authors on one line, then a
+  single "meta" line with venue + year + DOI + OA pill (or RG link),
+  optionally followed by media-coverage pills.
+{%- endcomment -%}
+
+{% assign raw_pubs = site.data.publications %}
+{% if raw_pubs %}
+  {%- comment -%}
+    IMPORTANT: do NOT use Liquid's `sort` on the pubs array here.
+    Liquid's `sort` is backed by Ruby's Array#sort, which is NOT
+    stable — it silently reshuffles papers that share a year, so
+    the ▲▼ reorder in the widget would stop matching the page.
+
+    Instead we iterate `raw_pubs` in its exact YAML order and use
+    `where: "year", y` to pull out each year's papers. The `where`
+    filter preserves original order, so within-year order comes
+    straight from the YAML. Only the YEAR list is sorted (uniq
+    values of `year`, numerically descending).
+  {%- endcomment -%}
+  {% assign pubs = raw_pubs %}
+  {% assign years = raw_pubs | map: "year" | uniq | sort | reverse %}
+{% else %}
+  {% assign pubs = "" | split: "" %}
+  {% assign years = "" | split: "" %}
+{% endif %}
+
+{% if pubs.size == 0 %}
+  <p data-reveal><em>Publications will appear here once added (use the widget or edit <code>_data/publications.yml</code>).</em></p>
+{% endif %}
+
+{% for y in years %}
+  <section class="pub-year" data-reveal>
+    <h2>{{ y }}</h2>
+    <ul class="pub-list">
+      {% assign year_pubs = pubs | where: "year", y %}
+      {% for p in year_pubs %}
+        {%- comment -%}
+          Markdownify the title so authors can italicize species
+          names in the YAML (e.g. "*Dictyota* spp." → <em>Dictyota</em> spp.).
+          `markdownify` wraps its output in <p>…</p>, which we strip
+          so the title stays inline inside the <h3>.
+        {%- endcomment -%}
+        {%- assign title_html = p.title | markdownify | replace: "<p>", "" | replace: "</p>", "" | strip -%}
+        <li class="pub-item{% if p.cover %} has-cover{% endif %}">
+          <div class="pub-item__text">
+            <h3 class="pub-item__title">
+              {% if p.url %}<a href="{{ p.url }}">{{ title_html }}</a>
+              {%- elsif p.doi -%}<a href="https://doi.org/{{ p.doi }}">{{ title_html }}</a>
+              {%- else -%}{{ title_html }}{%- endif %}
+            </h3>
+            <p class="pub-item__authors">
+              {% for a in p.authors -%}
+                {%- if a.pi -%}
+                  <span class="is-pi">{{ a.name }}</span>
+                {%- else -%}
+                  {{ a.name }}
+                {%- endif -%}
+                {%- unless forloop.last -%}, {% endunless -%}
+              {%- endfor %}
+            </p>
+            <p class="pub-item__meta">
+              <em class="pub-item__venue">{{ p.venue }}</em>{% if p.year %} ({{ p.year }}){% endif %}
+              {%- comment -%}
+                Inline links after the venue. Separator dot "·" keeps
+                the line readable without heavy bullet points.
+              {%- endcomment -%}
+              {% if p.doi %} &middot; <a class="pub-item__link" href="https://doi.org/{{ p.doi }}">DOI</a>{% endif %}
+              {% if p.preprint %} &middot; <a class="pub-item__link" href="{{ p.preprint }}">Preprint</a>{% endif %}
+              {% if p.pdf %} &middot; <a class="pub-item__link" href="{{ p.pdf | relative_url }}">PDF</a>{% endif %}
+              {% if p.open_access %}
+                <span class="pub-item__oa" title="Open access">Open access</span>
+              {% else %}
+                {%- comment -%}
+                  Non-OA: link to ResearchGate. Prefer the per-paper
+                  URL; otherwise fall back to the profile URL in
+                  _config.yml's social block.
+                {%- endcomment -%}
+                {% assign rg_link = p.researchgate %}
+                {% unless rg_link %}{% assign rg_link = site.social.researchgate %}{% endunless %}
+                {% if rg_link %} &middot; <a class="pub-item__link" href="{{ rg_link }}" rel="noopener">PDF on ResearchGate</a>{% endif %}
+              {% endif %}
+              {% if p.code %} &middot; <a class="pub-item__link" href="{{ p.code }}">Code</a>{% endif %}
+              {% if p.data %} &middot; <a class="pub-item__link" href="{{ p.data }}">Data</a>{% endif %}
+              {%- comment -%}
+                Media coverage: one or more outlets that wrote about
+                the paper (CNN, IFLScience, science magazines, etc.).
+                Each renders as a small maroon pill so the eye finds
+                them as a separate visual category from the academic
+                links above (DOI / PDF / OA). Optional — most papers
+                won't have any. Pills wrap to a new line if the meta
+                line gets too long.
+              {%- endcomment -%}
+              {% if p.media and p.media.size > 0 %}
+                <span class="pub-item__media">
+                  <span class="pub-item__media-label">Media:</span>
+                  {% for m in p.media %}
+                    <a class="pub-item__media-pill" href="{{ m.url }}" rel="noopener" target="_blank">{{ m.name }}</a>
+                  {% endfor %}
+                </span>
+              {% endif %}
+            </p>
+          </div>
+          {% if p.cover %}
+            {%- comment -%}
+              Cover thumbnail (e.g. journal cover when the paper made
+              the issue cover, or a representative figure). Links to
+              the DOI/URL so it's also a quick way to reach the paper.
+            {%- endcomment -%}
+            {% assign cover_href = p.url %}
+            {% unless cover_href %}{% if p.doi %}{% assign cover_href = "https://doi.org/" | append: p.doi %}{% endif %}{% endunless %}
+            <figure class="pub-item__cover">
+              {% if cover_href %}
+                <a href="{{ cover_href }}" aria-label="{{ p.title | strip_html | escape }}">
+                  <img src="{{ p.cover | relative_url }}" alt="Cover for {{ p.title | strip_html | escape }}" loading="lazy">
+                </a>
+              {% else %}
+                <img src="{{ p.cover | relative_url }}" alt="Cover for {{ p.title | strip_html | escape }}" loading="lazy">
+              {% endif %}
+            </figure>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endfor %}

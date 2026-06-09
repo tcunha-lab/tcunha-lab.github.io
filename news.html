@@ -1,0 +1,167 @@
+---
+layout: page
+title: News
+permalink: /news/
+body_class: news
+hide_title: true
+---
+
+{% assign all_news = site.news | sort: 'date' | reverse %}
+
+{% if all_news.size == 0 %}
+  <p data-reveal><em>News items will appear here (use the widget or add files to <code>_news/</code>).</em></p>
+{% else %}
+  {%- comment -%}
+    Client-side pagination: we render ALL items on the page but hide
+    all except the first N. Prev/Next buttons swap which chunk is
+    visible. This avoids jekyll-paginate's limitation (posts only,
+    not arbitrary collections) and works fine on GitHub Pages since
+    no plugin is needed.
+  {%- endcomment -%}
+  <div class="news-list"
+       data-reveal-group
+       data-page-size="10"
+       id="news-list">
+    {% for item in all_news %}
+      <article class="news-list__item">
+        <div class="news-list__date">{{ item.date | date: "%b %-d, %Y" }}</div>
+        <div class="news-list__text">
+          <h3><a href="{{ item.url | relative_url }}">{{ item.title }}</a></h3>
+          {%- comment -%}
+            Decide what summary to show on the card:
+              - Explicit `excerpt:` in front matter → use it (rendered as
+                markdown so any [text](url) links become real links).
+              - No excerpt but body text present → use the body, stripped
+                to plain text and capped at ~200 chars with an ellipsis.
+              - Neither → nothing.
+
+            Long excerpts (> 200 chars) also get truncated to keep the
+            cards uniform; in that case we strip HTML first since the
+            partial markdown could break mid-tag if we truncated raw.
+          {%- endcomment -%}
+          {%- assign summary_md = "" -%}
+          {%- if item.excerpt -%}{%- assign summary_md = item.excerpt -%}{%- endif -%}
+          {%- if summary_md == "" -%}
+            {%- assign summary_md = item.content | strip_html | strip -%}
+          {%- endif -%}
+          {%- assign summary_html = summary_md | markdownify -%}
+          {%- assign summary_plain = summary_html | strip_html | strip_newlines -%}
+          {%- if summary_plain != "" -%}
+            <div class="news-list__excerpt">
+              {%- if summary_plain.size > 200 -%}
+                {{ summary_plain | truncate: 200 }}
+              {%- else -%}
+                {{ summary_html }}
+              {%- endif -%}
+            </div>
+          {%- endif -%}
+        </div>
+        {% if item.image %}
+          <a class="news-list__thumb" href="{{ item.url | relative_url }}" aria-hidden="true" tabindex="-1">
+            <img src="{{ item.image | relative_url }}"
+                 alt=""
+                 loading="lazy">
+          </a>
+        {% else %}
+          <div class="news-list__thumb is-placeholder" aria-hidden="true"></div>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+
+  <nav class="pager" id="news-pager" aria-label="News pagination" data-reveal>
+    <button type="button" class="btn btn--ghost" id="pager-prev">&larr; Newer</button>
+    <div class="pager__pages" id="pager-pages" role="group" aria-label="Pages"></div>
+    <button type="button" class="btn btn--ghost" id="pager-next">Older &rarr;</button>
+  </nav>
+
+  <script>
+    // Client-side pagination with numbered page links. Click any number
+    // to jump straight to that page; the ← / → buttons still walk one
+    // step at a time. No dependencies, no server work.
+    (function () {
+      const list  = document.getElementById('news-list');
+      const items = Array.from(list.querySelectorAll('.news-list__item'));
+      const size  = parseInt(list.dataset.pageSize, 10) || 10;
+      const pages = Math.max(1, Math.ceil(items.length / size));
+      const prev  = document.getElementById('pager-prev');
+      const next  = document.getElementById('pager-next');
+      const pagesEl = document.getElementById('pager-pages');
+      let page    = 1;
+
+      // Compute which page numbers to show. For small page counts we
+      // list every page. Once it grows, we condense with "…" gaps so
+      // the bar doesn't sprawl:
+      //   - always show pages 1 and N (first and last)
+      //   - always show current and its immediate neighbors
+      //   - fill gaps with "…"
+      // Returns an array of items: each is either a number (page) or
+      // the string '…' (gap marker, not clickable).
+      function pageRange(current, total) {
+        // 7 or fewer → show them all.
+        if (total <= 7) {
+          return Array.from({ length: total }, (_, i) => i + 1);
+        }
+        const out = new Set([1, total, current - 1, current, current + 1]);
+        // Pad both ends so the very first / last current case still
+        // looks balanced: 1 2 3 … N or 1 … N-2 N-1 N.
+        if (current <= 3)            { out.add(2); out.add(3); }
+        if (current >= total - 2)    { out.add(total - 1); out.add(total - 2); }
+        const sorted = [...out].filter(n => n >= 1 && n <= total).sort((a, b) => a - b);
+        const result = [];
+        sorted.forEach((n, i) => {
+          if (i > 0 && n - sorted[i - 1] > 1) result.push('…');
+          result.push(n);
+        });
+        return result;
+      }
+
+      function renderPagerNumbers() {
+        pagesEl.innerHTML = '';
+        pageRange(page, pages).forEach(item => {
+          if (item === '…') {
+            const span = document.createElement('span');
+            span.className = 'pager__gap';
+            span.textContent = '…';
+            pagesEl.appendChild(span);
+            return;
+          }
+          const i = item;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = i;
+          btn.className = 'pager__num' + (i === page ? ' is-active' : '');
+          if (i === page) btn.setAttribute('aria-current', 'page');
+          btn.addEventListener('click', () => { page = i; render(); });
+          pagesEl.appendChild(btn);
+        });
+      }
+
+      function render() {
+        const start = (page - 1) * size;
+        const end   = start + size;
+        items.forEach((el, i) => {
+          el.style.display = (i >= start && i < end) ? '' : 'none';
+        });
+        renderPagerNumbers();
+        prev.disabled = (page === 1);
+        next.disabled = (page === pages);
+        // Scroll to the top of the list when the page changes
+        // (but not on first render, which would jerk the page).
+        if (window.__newsPagerMounted) {
+          list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        window.__newsPagerMounted = true;
+      }
+
+      prev.addEventListener('click', () => { if (page > 1)     { page--; render(); } });
+      next.addEventListener('click', () => { if (page < pages) { page++; render(); } });
+
+      // Hide the whole pager if there's only one page.
+      if (pages <= 1) {
+        document.getElementById('news-pager').style.display = 'none';
+      }
+      render();
+    })();
+  </script>
+{% endif %}

@@ -1,0 +1,57 @@
+{%- comment -%}
+  Renders one social/contact link as an icon button using the icon-font
+  libraries loaded in head.html — Font Awesome 5 and Academicons.
+  These are the same libraries the PI's old Hugo-academic site used, so
+  the icons match exactly.
+
+  Usage: {% include social-link.html link=l %}
+  where `l` is a hash from _data/team.yml with `label` and `url`.
+  Optional `l.icon` overrides the auto-pick ("github", "email", etc).
+
+  Recognized labels (case-insensitive; spaces/punctuation ignored):
+    email, scholar / google scholar, researchgate, orcid, lattes,
+    cv, github, linkedin, twitter / x, bluesky, website.
+  "Google Scholar" / "googlescholar" → scholar. Unknown labels fall
+  back to a generic website icon (fas fa-link).
+
+  Email links are spam-obfuscated: the address is split on @ and the two
+  halves are stored in data attributes. A tiny inline JS script (see
+  assets/js/email-obfuscate.js) reassembles them on click. Raw HTML never
+  contains a `mailto:` string, so scrapers won't find it.
+{%- endcomment -%}
+{%- assign l = include.link -%}
+{%- assign raw_label = l.label | default: "" | downcase | replace: " ", "" | replace: "-", "" | replace: "_", "" -%}
+{%- assign icon_key = l.icon | default: raw_label -%}
+{%- if icon_key contains "scholar" -%}{%- assign icon_key = "scholar" -%}{%- endif -%}
+{%- if icon_key == "x" -%}{%- assign icon_key = "twitter" -%}{%- endif -%}
+
+{%- comment -%} Map canonical key -> icon-font class string. {%- endcomment -%}
+{%- case icon_key -%}
+  {%- when "email"        -%}{%- assign cls = "fas fa-envelope-square" -%}
+  {%- when "scholar"      -%}{%- assign cls = "ai ai-google-scholar"   -%}
+  {%- when "researchgate" -%}{%- assign cls = "ai ai-researchgate"     -%}
+  {%- when "orcid"        -%}{%- assign cls = "ai ai-orcid"            -%}
+  {%- when "lattes"       -%}{%- assign cls = "ai ai-lattes"           -%}
+  {%- when "cv"           -%}{%- assign cls = "ai ai-cv"               -%}
+  {%- when "github"       -%}{%- assign cls = "fab fa-github"          -%}
+  {%- when "linkedin"     -%}{%- assign cls = "fab fa-linkedin"        -%}
+  {%- when "twitter"      -%}{%- assign cls = "fab fa-twitter"         -%}
+  {%- when "bluesky"      -%}{%- assign cls = "fas fa-cloud"           -%}
+  {%- when "website"      -%}{%- assign cls = "fas fa-globe"           -%}
+  {%- else                -%}{%- assign cls = "fas fa-link"            -%}
+{%- endcase -%}
+
+{%- if icon_key == "email" -%}
+  {%- assign mail = l.url | remove_first: "mailto:" -%}
+  {%- assign parts = mail | split: "@" -%}
+  <a href="#" class="social-link js-mail"
+     data-u="{{ parts[0] }}" data-d="{{ parts[1] }}"
+     aria-label="Email" title="Email">
+    <i class="{{ cls }}" aria-hidden="true"></i>
+  </a>
+{%- else -%}
+  <a href="{{ l.url }}" class="social-link" rel="noopener" target="_blank"
+     aria-label="{{ l.label }}" title="{{ l.label }}">
+    <i class="{{ cls }}" aria-hidden="true"></i>
+  </a>
+{%- endif -%}

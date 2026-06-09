@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# One-shot build to _site/. Loads the Ruby 3.2+ compatibility shim via
+# RUBYOPT so Jekyll 3.9 / Liquid 4 doesn't crash on `tainted?`.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export RUBYOPT="-r./.jekyll-shims.rb"
+exec bundle exec jekyll build "$@"

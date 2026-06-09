@@ -1,0 +1,120 @@
+{%- comment -%}
+  Reusable lightbox include. Any page that drops `<img data-lightbox>`
+  elements into its markup can include this once to get a click-to-zoom
+  overlay with prev/next navigation, keyboard shortcuts, and video
+  support (.mp4 / .webm / .mov files for time-lapses).
+
+  Lifted out of `_layouts/news.html` so the fieldwork page can use it
+  too — and any future page that wants the same behavior.
+{%- endcomment -%}
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <button type="button" class="lightbox__close" aria-label="Close">&times;</button>
+  <div class="lightbox__counter" aria-hidden="true"></div>
+  <button type="button" class="lightbox__nav lightbox__nav--prev" aria-label="Previous photo">&#x2039;</button>
+  <figure class="lightbox__figure">
+    <img class="lightbox__img" alt="">
+    {%- comment -%}
+      `<video>` is hidden until the script flips to it for items whose
+      lightbox-src is an .mp4/.webm (e.g., time-lapses). `playsinline`
+      is required so iOS doesn't go fullscreen automatically.
+    {%- endcomment -%}
+    <video class="lightbox__video" autoplay loop muted playsinline style="display:none;"></video>
+    <figcaption class="lightbox__caption"></figcaption>
+  </figure>
+  <button type="button" class="lightbox__nav lightbox__nav--next" aria-label="Next photo">&#x203A;</button>
+</div>
+
+<script>
+  (function () {
+    const triggers = Array.from(document.querySelectorAll('img[data-lightbox]'));
+    if (triggers.length === 0) return;
+    const lb       = document.getElementById('lightbox');
+    if (!lb) return;
+    // Move the lightbox to <body> so no transformed ancestor (page-body
+    // has `data-reveal` which animates with translateY) can trap its
+    // `position: fixed`. Same trick the team-bio popup uses.
+    document.body.appendChild(lb);
+
+    const imgEl     = lb.querySelector('.lightbox__img');
+    const videoEl   = lb.querySelector('.lightbox__video');
+    const captionEl = lb.querySelector('.lightbox__caption');
+    const counterEl = lb.querySelector('.lightbox__counter');
+    const prevBtn   = lb.querySelector('.lightbox__nav--prev');
+    const nextBtn   = lb.querySelector('.lightbox__nav--next');
+    const closeBtn  = lb.querySelector('.lightbox__close');
+
+    // Detect video URLs (.mp4 / .webm / .mov) so the lightbox knows
+    // whether to show its <img> or its <video> element.
+    function isVideo(src) {
+      return /\.(mp4|webm|mov)(\?.*)?$/i.test(src);
+    }
+
+    const items = triggers.map(t => ({
+      // Use the full-res `data-lightbox-src` if provided; fall back to
+      // the visible thumbnail src so older posts still open in the
+      // lightbox (they just won't be higher-res than the thumb).
+      src: t.getAttribute('data-lightbox-src') || t.src,
+      alt: t.alt || '',
+      caption: t.getAttribute('data-lightbox-caption') || ''
+    }));
+    const multi = items.length > 1;
+    let idx = 0;
+
+    function update() {
+      const it = items[idx];
+      if (isVideo(it.src)) {
+        imgEl.style.display = 'none';
+        imgEl.removeAttribute('src');
+        videoEl.style.display = '';
+        videoEl.src = it.src;
+        videoEl.play().catch(() => { /* user gesture might be needed */ });
+      } else {
+        videoEl.pause();
+        videoEl.removeAttribute('src');
+        videoEl.style.display = 'none';
+        imgEl.style.display = '';
+        imgEl.src = it.src;
+        imgEl.alt = it.alt;
+      }
+      captionEl.textContent = it.caption;
+      captionEl.style.display = it.caption ? 'block' : 'none';
+      counterEl.textContent = multi ? (idx + 1) + ' / ' + items.length : '';
+      counterEl.style.display = multi ? 'block' : 'none';
+      prevBtn.style.display = multi ? '' : 'none';
+      nextBtn.style.display = multi ? '' : 'none';
+    }
+    function open(i) {
+      idx = i;
+      update();
+      lb.classList.add('is-open');
+      lb.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+    function close() {
+      lb.classList.remove('is-open');
+      lb.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      videoEl.pause();
+      videoEl.removeAttribute('src');
+    }
+    function go(dir) {
+      idx = (idx + dir + items.length) % items.length;
+      update();
+    }
+
+    triggers.forEach((t, i) => {
+      t.style.cursor = 'zoom-in';
+      t.addEventListener('click', e => { e.preventDefault(); open(i); });
+    });
+    prevBtn.addEventListener('click', () => go(-1));
+    nextBtn.addEventListener('click', () => go(1));
+    closeBtn.addEventListener('click', close);
+    lb.addEventListener('click', e => { if (e.target === lb) close(); });
+    document.addEventListener('keydown', e => {
+      if (!lb.classList.contains('is-open')) return;
+      if (e.key === 'Escape')     close();
+      if (e.key === 'ArrowLeft'  && multi) go(-1);
+      if (e.key === 'ArrowRight' && multi) go(1);
+    });
+  })();
+</script>

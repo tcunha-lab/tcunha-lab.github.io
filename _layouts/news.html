@@ -1,0 +1,156 @@
+---
+layout: default
+---
+<article class="news-post">
+  <header class="page-header container" data-reveal>
+    <p class="news-post__date">{{ page.date | date: "%B %-d, %Y" }}</p>
+    <h1 class="page-header__title">{{ page.title }}</h1>
+    {% if page.subtitle %}<p class="page-header__subtitle">{{ page.subtitle }}</p>{% endif %}
+  </header>
+
+  {%- comment -%}
+    Layout depends on whether this post has additional gallery photos:
+
+    - No gallery: the main image floats to the right of the body text
+      (classic single-photo blog post). On narrow screens the float
+      drops and the image stacks above the text.
+
+    - With gallery: the main image joins the gallery as the first
+      square tile so all photos are displayed uniformly. The body
+      text sits above the grid with no floating image.
+
+    All images get `data-lightbox` so the lightbox script picks them
+    up and lets the user click through full-size with prev/next.
+  {%- endcomment -%}
+  {%- assign has_gallery = false -%}
+  {%- if page.gallery and page.gallery.size > 0 -%}{%- assign has_gallery = true -%}{%- endif -%}
+
+  {%- comment -%}
+    `data-lightbox-src` is the high-res version (whole photo, ~2400px
+    long edge) shown when the visitor clicks a thumbnail. If the post
+    was saved before full-res support existed, the field is missing,
+    so the layout falls back to the cropped `src` — visitors just see
+    the same square they clicked. Both paths are rendered through
+    `relative_url` for correct base-path handling.
+  {%- endcomment -%}
+  <div class="page-body container news-post__body" data-reveal>
+    {% if page.image and has_gallery == false %}
+    <figure class="news-post__image">
+      <img src="{{ page.image | relative_url }}"
+           alt="{{ page.image_alt | default: page.title }}"
+           data-lightbox
+           data-lightbox-src="{{ page.image_full | default: page.image | relative_url }}"
+           {% if page.image_caption %}data-lightbox-caption="{{ page.image_caption | escape }}"{% endif %}>
+      {% if page.image_caption %}<figcaption>{{ page.image_caption }}</figcaption>{% endif %}
+    </figure>
+    {% endif %}
+
+    {%- comment -%}
+      If the body is empty (just whitespace), fall back to rendering the
+      excerpt — otherwise short posts where the excerpt IS the whole
+      story would have no body text at all on their own page.
+      `content | strip_html | strip` collapses to "" when the body has
+      no real text, even if Jekyll rendered an empty <p></p>.
+    {%- endcomment -%}
+    {%- capture body_inner -%}{{ content }}{%- endcapture -%}
+    {%- assign body_text = body_inner | strip_html | strip -%}
+    {% if body_text != "" %}
+      {{ content }}
+    {% elsif page.excerpt %}
+      {{ page.excerpt | markdownify }}
+    {% endif %}
+  </div>
+
+  {% if has_gallery %}
+  <div class="container news-post__gallery-wrap" data-reveal>
+    <div class="news-post__gallery">
+      {%- comment -%}
+        Main card image goes first so it stays the "lead" photo while
+        sharing the uniform square grid with the other photos.
+      {%- endcomment -%}
+      {% if page.image %}
+      <figure class="news-post__gallery-item">
+        <img src="{{ page.image | relative_url }}"
+             alt="{{ page.image_alt | default: page.title }}"
+             data-lightbox
+             data-lightbox-src="{{ page.image_full | default: page.image | relative_url }}"
+             {% if page.image_caption %}data-lightbox-caption="{{ page.image_caption | escape }}"{% endif %}>
+        {% if page.image_caption %}<figcaption>{{ page.image_caption }}</figcaption>{% endif %}
+      </figure>
+      {% endif %}
+      {% for photo in page.gallery %}
+      <figure class="news-post__gallery-item">
+        <img src="{{ photo.path | relative_url }}"
+             alt="{{ photo.alt | default: '' }}"
+             data-lightbox
+             data-lightbox-src="{{ photo.full | default: photo.path | relative_url }}"
+             {% if photo.caption %}data-lightbox-caption="{{ photo.caption | escape }}"{% endif %}>
+        {% if photo.caption %}<figcaption>{{ photo.caption }}</figcaption>{% endif %}
+      </figure>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {%- comment -%}
+    Previous / next navigation. We resort the collection newest-first
+    so the index order matches what visitors see on /news/. From there:
+
+      - "Previous" (left arrow) = the post that came BEFORE in time, i.e.
+        the older one. In a date-descending list it sits AFTER the
+        current item, so its index is `current + 1`.
+      - "Next" (right arrow) = the post that came AFTER in time, i.e.
+        the newer one. Its index is `current - 1`.
+
+    Visitors see both titles inline so they know what they're clicking.
+    Edge cases (oldest / newest post) leave that side blank — the
+    `.news-post__nav` grid keeps the other two slots in place.
+  {%- endcomment -%}
+  {%- assign news_items = site.news | sort: 'date' | reverse -%}
+  {%- assign current_idx = -1 -%}
+  {%- for n in news_items -%}
+    {%- if n.url == page.url -%}
+      {%- assign current_idx = forloop.index0 -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- assign last_idx = news_items.size | minus: 1 -%}
+  {%- assign older_post = nil -%}
+  {%- assign newer_post = nil -%}
+  {%- if current_idx >= 0 and current_idx < last_idx -%}
+    {%- assign older_idx = current_idx | plus: 1 -%}
+    {%- assign older_post = news_items[older_idx] -%}
+  {%- endif -%}
+  {%- if current_idx > 0 -%}
+    {%- assign newer_idx = current_idx | minus: 1 -%}
+    {%- assign newer_post = news_items[newer_idx] -%}
+  {%- endif -%}
+
+  <nav class="container news-post__nav" data-reveal aria-label="Other news">
+    {%- comment -%}
+      Inverted layout: Next on the left, Previous on the right. Arrows
+      point outward (away from the center) so the eye flows from the
+      label/arrow into the page-edge, mirroring the navigation direction.
+    {%- endcomment -%}
+    <div class="news-post__nav-side news-post__nav-next">
+      {% if newer_post %}
+        <a href="{{ newer_post.url | relative_url }}">
+          <span class="news-post__nav-label">&larr; Next</span>
+          <span class="news-post__nav-title">{{ newer_post.title }}</span>
+        </a>
+      {% endif %}
+    </div>
+    <div class="news-post__nav-center">
+      <a href="{{ '/news/' | relative_url }}">All news</a>
+    </div>
+    <div class="news-post__nav-side news-post__nav-prev">
+      {% if older_post %}
+        <a href="{{ older_post.url | relative_url }}">
+          <span class="news-post__nav-label">Previous &rarr;</span>
+          <span class="news-post__nav-title">{{ older_post.title }}</span>
+        </a>
+      {% endif %}
+    </div>
+  </nav>
+</article>
+
+{% include lightbox.html %}
