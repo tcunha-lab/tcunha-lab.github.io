@@ -30,6 +30,13 @@ hero_image_position: "center 55%"
 url: "https://cunhalab.com"
 baseurl: ""
 
+# --- Analytics ---
+# Cloudflare Web Analytics — privacy-friendly, no cookies, no banner
+# required. Dashboard: https://dash.cloudflare.com → Analytics & Logs →
+# Web Analytics → cunhalab.com. To disable, blank the token below; the
+# script tag in _includes/head.html only renders when this is set.
+cloudflare_analytics_token: "3a72969bcc5d441aa76df5a2b0ef0995"
+
 # --- Social / external profiles (leave blank to hide the icon) ---
 social:
   github: ""

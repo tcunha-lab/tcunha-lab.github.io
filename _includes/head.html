@@ -44,4 +44,16 @@
   <link rel="apple-touch-icon" sizes="192x192" href="{{ '/assets/images/favicon-192.png' | relative_url }}">
 
   {% feed_meta %}
+
+  {%- comment -%}
+    Cloudflare Web Analytics. Tiny anonymous beacon, no cookies, no
+    consent banner needed. The token lives in _config.yml; blanking it
+    there disables analytics site-wide. `defer` makes the script load
+    after parsing so it never blocks page rendering, and pointing at
+    the Cloudflare CDN means we don't host this asset ourselves.
+  {%- endcomment -%}
+  {% if site.cloudflare_analytics_token and site.cloudflare_analytics_token != "" %}
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+            data-cf-beacon='{"token": "{{ site.cloudflare_analytics_token }}"}'></script>
+  {% endif %}
 </head>
