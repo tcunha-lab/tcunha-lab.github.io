@@ -68,10 +68,12 @@
   bio: |-
     evolution, eDNA,/n
     genomics, ecology
+  photo: /assets/images/team/ebony-ikeemeka.jpg
   links:
     - label: Email
       url: eikeemeka@luc.edu
-  photo: /assets/images/team/ebony-ikeemeka.jpg
+    - label: Linkedin
+      url: https://www.linkedin.com/in/ebony-ikeemeka-353118241/
 - name: Afrah Khan
   role: WISER & Bio Summer Fellow
   role_group: undergrad
