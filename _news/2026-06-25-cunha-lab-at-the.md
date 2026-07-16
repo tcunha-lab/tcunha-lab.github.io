@@ -8,7 +8,7 @@ image_caption: Cunha Lab
 image_alt: Cunha Lab
 image_crop:
   x: 0.5
-  'y': 0.625
+  'y': 0.5333
   zoom: 1
 gallery:
   - path: /assets/images/news/2026-06-25-cunha-lab-at-the-1.jpg
@@ -67,3 +67,4 @@ gallery:
 ---
 
 First conference of Cunha Lab members! Everyone snailed it at their poster presentations and networking!
+
