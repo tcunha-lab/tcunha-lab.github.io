@@ -22,15 +22,40 @@ hide_title: true
                   the hover popup over a faded photo.
 {%- endcomment -%}
 
-{% assign group_order = "pi,postdoc,grad,undergrad,visiting,staff,alumni" | split: "," %}
-{% assign group_labels = "Principal Investigator,Postdoctoral Researchers,Graduate Students,Undergraduate Students,Visiting Scholars,Lab Staff,Lab Alumni" | split: "," %}
+{% assign group_order = "pi,postdoc,staff,grad,undergrad,visiting,alumni" | split: "," %}
+{% assign group_labels = "Principal Investigator,Postdoctoral Scientists,Staff,Graduate Students,Undergraduate Students,Visiting Scholars,Lab Alumni" | split: "," %}
 
 <div class="team-layout" data-layout="auto">
 
 {% for group in group_order %}
+  {%- comment -%}
+    Split-row treatment: postdoc + staff visually share a row (two
+    sections side-by-side on desktop, stacked on narrow screens).
+    When we hit "postdoc" and staff also has members, we wrap both
+    sections in a .team-row--split container and render staff inline.
+    When "staff" comes up in the outer loop, skip it — it was already
+    rendered inside the postdoc wrapper.
+
+    If only one of the two has members, the split-row wrapper is
+    dropped and whichever section exists renders full-width like the
+    other groups.
+  {%- endcomment -%}
+  {% assign postdoc_members = site.data.team | where: "role_group", "postdoc" %}
+  {% assign staff_members   = site.data.team | where: "role_group", "staff" %}
+
+  {% if group == "staff" and postdoc_members.size > 0 %}{% continue %}{% endif %}
+
   {% assign members = site.data.team | where: "role_group", group %}
   {% if members.size > 0 %}
     {% assign idx = forloop.index0 %}
+
+    {% assign split_row = false %}
+    {% if group == "postdoc" and staff_members.size > 0 %}
+      {% assign split_row = true %}
+    {% endif %}
+
+    {% if split_row %}<div class="team-row--split">{% endif %}
+
     <section class="team-section" data-group="{{ group }}" data-reveal>
       <div class="team-section-head">
         <h2>{{ group_labels[idx] }}</h2>
@@ -106,6 +131,56 @@ hide_title: true
         {% endfor %}
       </div>
     </section>
+
+    {%- comment -%}
+      Second half of the split row: render the Staff section inline
+      when we're in the postdoc iteration. Kept as a duplicated block
+      rather than an include so the whole team-page layout stays
+      readable in one file.
+    {%- endcomment -%}
+    {% if split_row %}
+      <section class="team-section" data-group="staff" data-reveal>
+        <div class="team-section-head">
+          <h2>Staff</h2>
+        </div>
+        <div class="team-grid" data-reveal-group>
+          {% for m in staff_members %}
+            {%- assign show_popup = false -%}
+            {%- if m.long_bio -%}{%- assign show_popup = true -%}{%- endif -%}
+            {%- assign bio_id = "bio-staff-" | append: forloop.index -%}
+            <div class="team-card" data-layout="grid">
+              {% if m.photo %}
+                <div class="team-card__photo{% if show_popup %} has-long-bio{% endif %}"
+                     {% if show_popup %}data-bio-id="{{ bio_id }}" tabindex="0" aria-label="Show bio for {{ m.name }}"{% endif %}>
+                  <img src="{{ m.photo | relative_url }}" alt="Photo of {{ m.name }}">
+                  {% if show_popup %}<span class="team-card__photo-hint" aria-hidden="true">about</span>{% endif %}
+                </div>
+              {% else %}
+                <div class="team-card__photo is-placeholder">{{ m.name | slice: 0, 1 }}</div>
+              {% endif %}
+              <div class="team-card__body">
+                <h3 class="team-card__name">{{ m.name }}</h3>
+                <p class="team-card__role">{{ m.role }}</p>
+                {% if m.bio %}
+                  {%- assign _bio = m.bio | replace: "/nn", "
+
+" | replace: "/n", "<br>" -%}
+                  <div class="team-card__bio">{{ _bio | markdownify }}</div>
+                {% endif %}
+                {% if m.links %}
+                  <div class="team-card__links">
+                    {% for l in m.links %}
+                      {% include social-link.html link=l %}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+      </div><!-- /.team-row--split -->
+    {% endif %}
   {% endif %}
 {% endfor %}
 

@@ -26,7 +26,17 @@ hide_title: true
   <div class="hero__overlay" aria-hidden="true"></div>
   <div class="hero__titlebox">
     <h1 class="hero__title">Tauana <em>Cunha</em> Lab</h1>
-    <p class="hero__tagline">{{ site.tagline }}</p>
+    {%- comment -%}
+      Tagline split on " @" so mobile can insert a line break right
+      before "@ Loyola" (which otherwise wraps ugly-in-the-middle-of
+      "invertebrate genomics"). The <br class="wrap-mobile"> is
+      display:none on desktop (single line, unchanged) and inline on
+      narrow screens. `parts[0]` is "invertebrate genomics and
+      evolution"; `parts[1]` is " Loyola University Chicago"
+      (with the non-breaking space between @ and Loyola preserved).
+    {%- endcomment -%}
+    {%- assign parts = site.tagline | split: " @" -%}
+    <p class="hero__tagline">{{ parts[0] }}<br class="wrap-mobile">@{{ parts[1] }}</p>
   </div>
 </section>
 

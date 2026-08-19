@@ -1,5 +1,32 @@
 # Publications — edit here or via the widget (widget/index.html).
 # Mark the PI author with `pi: true` so their name renders in bold.
+- title: >-
+    No silver bullet: Patterns of macrosynteny recapitulate systemic conflicts in the higher-level relationships of the
+    arachnids
+  authors:
+    - name: Kulkarni SS
+    - name: Klementz BC
+    - name: Ballesteros JA
+    - name: Abshire KM
+    - name: Cunha TJ
+      pi: true
+    - name: Hassan MK
+    - name: Laumer EM
+    - name: De Medeiros BAS
+    - name: Neu SM
+    - name: Pankey MS
+    - name: Plachetzki DC
+    - name: Santibáñez-López CE
+    - name: Setton EVW
+    - name: Varney RM
+    - name: Abdel-Rahman MA
+    - name: Hormiga G
+    - name: Sharma PP
+  year: 2026
+  venue: bioRxiv
+  doi: 10.64898/2026.06.22.733561
+  preprint: https://doi.org/10.64898/2026.06.22.733561
+  open_access: true
 - title: A target capture approach for molluscs aids in reconstructing the Molluscan Tree of Life
   authors:
     - name: Moles J
@@ -67,6 +94,7 @@
   venue: Current Biology
   doi: 10.1016/j.cub.2025.05.066
   url: https://doi.org/10.1016/j.cub.2025.05.066
+  open_access: true
   researchgate: >-
     https://www.researchgate.net/publication/392849093_Population_genomics_of_a_sailing_siphonophore_reveals_genetic_structure_in_the_open_ocean
   cover: /assets/images/publications/2025-current-biology-cover.jpg
@@ -90,7 +118,8 @@
     - name: IFLScience
       url: https://www.iflscience.com/host-manipulating-parasitic-worms-lack-genes-every-other-animal-has-69877
     - name: NatGeo Spain
-      url: https://www.nationalgeographic.com.es/mundo-animal/descubren-que-a-gusano-que-induce-a-sus-victimas-suicido-le-faltan-30-genes-que-compartimos-resto-seres-vivos_20427
+      url: >-
+        https://www.nationalgeographic.com.es/mundo-animal/descubren-que-a-gusano-que-induce-a-sus-victimas-suicido-le-faltan-30-genes-que-compartimos-resto-seres-vivos_20427
 - title: >-
     Expanding on Our Knowledge of Ecdysozoan Genomes: A Contiguous Assembly of the Meiofaunal Priapulan *Tubiluchus
     corallicola*

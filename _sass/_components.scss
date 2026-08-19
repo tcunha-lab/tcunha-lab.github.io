@@ -21,6 +21,21 @@
   @media (max-width: $bp-md) {
     height: 38vh;
     min-height: 220px;
+    // On mobile the container becomes portrait-ish (~1.25:1) but the
+    // hero image is a landscape 1.5:1 photo. With `background-size:
+    // cover` alone, cover fits HEIGHT (no vertical crop at all),
+    // which is why nudging background-position: y had no visible
+    // effect — there's nothing to shift.
+    //
+    // Force a vertical zoom (140% container height) so the image
+    // extends above AND below the container, giving background-
+    // position: y something to actually crop. Then anchor to 90%
+    // (near the bottom of the image) so faces and foreground stay
+    // in view instead of the ceiling.
+    // Both use !important to override the inline background-image /
+    // background-position set from _config.yml.
+    background-size: auto 115% !important;
+    background-position: center 90% !important;
   }
 }
 
@@ -95,6 +110,16 @@
   color: $color-text;     // near-black (was muted — bump for contrast)
   font-weight: 500;
   margin: 0;
+
+  // Hidden desktop break — the tagline fits on one line so nothing
+  // to see. On mobile (below), the same <br> becomes visible so
+  // "@ Loyola University Chicago" cleanly wraps to line 2 instead
+  // of breaking mid-word or after "and".
+  .wrap-mobile { display: none; }
+
+  @media (max-width: $bp-md) {
+    .wrap-mobile { display: inline; }
+  }
 }
 
 // ---------- Home intro (About blurb + stacked action buttons) ----------
@@ -256,15 +281,18 @@
   .news-card__date,
   .news-card__excerpt { display: none; }
 
-  .news-card__thumb { aspect-ratio: 16 / 9; }
+  // 4/3 rectangle — taller than the original 16/9 (which cropped
+  // out feet, hats, and other vertical detail from the 800×800
+  // thumbs) but not as tall as a square (which felt like too much
+  // photo relative to the short title line below). This ratio shows
+  // roughly 75% of the vertical thumb range vs 56% at 16/9, so the
+  // subject sits fully in frame in most cases.
+  .news-card__thumb { aspect-ratio: 4 / 3; }
 
   // Tight vertical padding so the photo carries most of the card —
   // the title-only body just needs enough breathing room around the
   // text. Horizontal padding stays at $space-4 to keep the title
-  // visually inset from the card edges. The 0.4rem top/bottom is
-  // smaller than $space-2 (0.5rem) — chosen by hand because the
-  // standard tokens jumped from "comfortable" to "tight" too quickly
-  // for the title-only case.
+  // visually inset from the card edges.
   .news-card__body {
     padding: 0.4rem $space-4;
     gap: 0;
@@ -621,6 +649,16 @@
   overflow: hidden;
   box-shadow: $shadow-sm;
   background: $color-paper;
+
+  // Mobile: drop the desktop 0.7x zoom so the map fills the container
+  // width instead of sitting shrunken in a big empty box. The visible
+  // framing changes slightly (Google renders at the actual iframe
+  // pixel size, so the world view is less wide) but on a phone the
+  // user is expected to pan/zoom anyway — so filling the space matters
+  // more than preserving the desktop's baked-in framing.
+  @media (max-width: $bp-md) {
+    zoom: 1;
+  }
 
   iframe {
     position: absolute;
@@ -1198,6 +1236,21 @@
   .team-card__role  { margin-bottom: $space-2; }   // role → bio
   .team-card__bio   { margin-bottom: 0; }          // bio bottom flush
   .team-card__links { margin-top: $space-1; }      // small gap to icons
+
+  // Long names like "Monique X, PhD" would otherwise wrap onto two
+  // lines because the card is only ~240px wide. Rather than shrink
+  // the font or widen the card (which would reflow the whole grid),
+  // let the name line extend symmetrically into the empty grid gap
+  // on either side. The horizontal gap is $space-5 (1.25rem = 20px),
+  // so the name gains ~40px of extra room without touching any other
+  // card element or overlapping neighboring cards. `white-space: nowrap`
+  // forces the one-line layout; the negative margins let it visually
+  // expand.
+  .team-card__name {
+    white-space: nowrap;
+    margin-left:  -$space-5;
+    margin-right: -$space-5;
+  }
 }
 
 .team-card__links {
@@ -1276,6 +1329,34 @@
   font-size: 1.6rem;
 }
 
+// Mobile-only: on the Team page, the PI section's "Join the lab" CTA
+// wraps onto its own line (there isn't horizontal room for both).
+// Default flex-wrap put it BELOW the heading, which felt like a
+// disconnected orphan button. Move it ABOVE instead, right-aligned —
+// reads as a top-right action anchor before the visitor scrolls into
+// the PI card. Scoped narrowly to the PI section-head so other pages
+// aren't affected. Section-head's own top/bottom margins are also
+// tightened so the pill doesn't sit inside a giant column of empty
+// whitespace on a small screen.
+@media (max-width: $bp-md) {
+  .team-section[data-group="pi"] .team-section-head {
+    flex-direction: column;
+    align-items: stretch;
+    // Shrink the vertical footprint of the section-head itself so
+    // the CTA + h2 stack doesn't dominate the top of the mobile
+    // page. Was $space-6 top / $space-5 bottom.
+    margin-top: $space-4;
+    margin-bottom: $space-3;
+    padding-bottom: $space-2;
+
+    .page-header__cta {
+      order: -1;                 // above the h2
+      align-self: flex-end;      // stay right-aligned
+      margin-bottom: $space-2;   // tight gap to the h2 below
+    }
+  }
+}
+
 // Breathing room between bullet items inside a page-section list, so
 // multi-line items don't feel crammed against each other. Applies to
 // both <ul> and <ol> children of any page-section.
@@ -1293,15 +1374,54 @@
   margin-top: $space-3;
 }
 
+// Mobile: normalize the gap above every team-section header so the
+// rhythm reads consistently down the page. On desktop we use
+// asymmetric tightening (nth-of-type(2), split-row wrapper) that
+// makes sense in a mostly-horizontal layout, but when everything
+// stacks vertically those exceptions produce visually uneven gaps
+// (postdoc/staff/grad felt cramped vs undergrad/visiting/alumni).
+// One value everywhere on mobile, no exceptions.
+@media (max-width: $bp-md) {
+  .team-section-head,
+  .team-layout > .team-section:nth-of-type(2) .team-section-head,
+  .team-row--split > .team-section .team-section-head {
+    margin-top: $space-5;
+  }
+}
+
 // Alumni: smaller photos, since we expect this section to grow.
+// Tuned smaller (150 vs 180) so a full row of alumni feels more like
+// a compact reference list than a hero grid — the current members
+// section rightly dominates the page.
 .team-section[data-group="alumni"] {
   .team-card__photo {
-    width: 180px;
-    height: 180px;
+    width: 150px;
+    height: 150px;
   }
-  // Tighten the minmax so narrower cards still fit 4 per row.
   .team-grid {
-    grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  }
+}
+
+// Postdoc + Staff share a row: two sections side-by-side on desktop,
+// stacked on narrow screens. Each keeps its own header and grid so
+// the visual read is "these are two different groups that happen to
+// sit next to each other" rather than "one merged group." Tighten
+// the section-head top margin inside the split wrapper so the two
+// headers align at the top of the row without extra whitespace.
+.team-row--split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-6;
+  align-items: start;
+
+  @media (max-width: $bp-md) {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  > .team-section .team-section-head {
+    margin-top: $space-3;
   }
 }
 
@@ -1367,6 +1487,13 @@
       &, &:has(> .research-area__image:last-child) {
         grid-template-columns: 1fr;
       }
+      // Always render the image ABOVE the text on mobile, regardless
+      // of desktop-side alternating layout. With DOM order alone the
+      // photo would sit under the text for sections where the image
+      // is the second child; grid `order: -1` promotes it to the top
+      // of the stack uniformly, so the reading rhythm is consistent
+      // (image → text → image → text) all the way down.
+      .research-area__image { order: -1; }
     }
   }
 

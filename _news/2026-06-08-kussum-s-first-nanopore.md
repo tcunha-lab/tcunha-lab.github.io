@@ -7,9 +7,13 @@ excerpt: >-
 image: /assets/images/news/2026-06-08-kussum-s-first-nanopore.jpg
 image_full: /assets/images/news/2026-06-08-kussum-s-first-nanopore-full.jpg
 image_crop:
-  x: 0.3839
-  'y': 0.4967
+  x: 0.4904
+  'y': 0.5125
   zoom: 1.03
 ---
+
+
+
+
 
 

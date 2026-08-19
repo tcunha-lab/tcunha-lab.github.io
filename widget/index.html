@@ -1047,9 +1047,16 @@ class SquareCropper {
   _draw() {
     if (!this.img || !this.state) return;
     const cw = this.canvas.width, ch = this.canvas.height;
-    // Fill background: white in letterbox so the margins look clean,
-    // dark gray in cover so any wobble while dragging is obvious.
-    this.ctx.fillStyle = this.letterbox ? '#ffffff' : '#222';
+    // Fill background based on mode:
+    //   - letterbox: subtle light gray (#EFEFF1 = $color-paper token
+    //     from the site's SCSS). Baked into the JPG so the margins
+    //     look like an intentional matte around the photo, distinct
+    //     from the white card body and roughly matching the page's
+    //     section band color.
+    //   - cover: dark gray so any wobble while dragging is obvious
+    //     in the widget preview (the whole canvas gets covered by
+    //     the image anyway when the crop is committed).
+    this.ctx.fillStyle = this.letterbox ? '#EFEFF1' : '#222';
     this.ctx.fillRect(0, 0, cw, ch);
     const w = this.state.imgW * this.state.scale;
     const h = this.state.imgH * this.state.scale;
@@ -1070,8 +1077,11 @@ class SquareCropper {
     }
   }
   _export() {
-    // 0.95 keeps the output visually lossless for typical photographs
-    // without blowing up file size beyond ~200-500 KB.
+    // Always JPG at q=0.95 — visually lossless for typical photographs
+    // and ~200-500 KB per file. Letterbox mode bakes the gray matte
+    // color into the pixels (see _draw), which is fine since JPG has
+    // no transparency support and gray-matte-on-white-card reads as
+    // an intentional frame around the photo.
     this.canvas.toBlob((blob) => {
       if (!blob) return;
       blob.arrayBuffer().then(buf => { this.outBuffer = buf; });
@@ -2111,6 +2121,11 @@ document.getElementById('team-save').addEventListener('click', async () => {
   const previousPhoto = (editIdx !== '' && state.team[parseInt(editIdx)])
     ? (state.team[parseInt(editIdx)].photo || '')
     : '';
+  // Remember the previous role_group so we can detect a transition
+  // to alumni below and reposition the entry accordingly.
+  const previousRoleGroup = (editIdx !== '' && state.team[parseInt(editIdx)])
+    ? (state.team[parseInt(editIdx)].role_group || '')
+    : '';
 
   // Handle photo — cropper always exports a square JPG
   if (teamPhotoData) {
@@ -2160,6 +2175,23 @@ document.getElementById('team-save').addEventListener('click', async () => {
       }
     }
     state.team[i] = entry;
+
+    // If this edit transitioned the member from any other group to
+    // alumni, move them to the TOP of the alumni block so that
+    // recently-transitioned members show first on the Team page
+    // (which iterates the YAML file in order within each group).
+    // Reason: the site orders alumni oldest→newest based on YAML
+    // position, so newly-added alumni would otherwise sink to the
+    // bottom of the block.
+    if (previousRoleGroup !== 'alumni' && roleGroup === 'alumni') {
+      const [moved] = state.team.splice(i, 1);
+      const firstAlumniIdx = state.team.findIndex(m => m.role_group === 'alumni');
+      if (firstAlumniIdx === -1) {
+        state.team.push(moved);  // no other alumni yet
+      } else {
+        state.team.splice(firstAlumniIdx, 0, moved);
+      }
+    }
   } else {
     state.team.push(entry);
   }
@@ -2195,11 +2227,11 @@ function resetTeamForm() {
 // Team page (team.html). "alumni" is last and starts collapsed.
 const TEAM_GROUPS = [
   { id: 'pi',        label: 'Principal Investigator'    },
-  { id: 'postdoc',   label: 'Postdoctoral Researchers'  },
+  { id: 'postdoc',   label: 'Postdoctoral Scientists'   },
+  { id: 'staff',     label: 'Staff'                     },
   { id: 'grad',      label: 'Graduate Students'         },
   { id: 'undergrad', label: 'Undergraduate Students'    },
   { id: 'visiting',  label: 'Visiting Scholars'         },
-  { id: 'staff',     label: 'Lab Staff'                 },
   { id: 'alumni',    label: 'Lab Alumni',    collapsed: true },
 ];
 
