@@ -152,3 +152,11 @@
   links:
     - label: ResearchGate
       url: https://www.researchgate.net/profile/Jaelyn-Bos
+- name: Madeleine Reed-Horn
+  role: High-school intern
+  role_group: alumni
+  bio: Fall 2023 at Field Museum
+  photo: /assets/images/team/madeleine-reed-horn.jpg
+  links:
+    - label: Linkedin
+      url: https://www.linkedin.com/in/madeleine-reed-horn-36b466253/
